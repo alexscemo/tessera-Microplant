@@ -1,0 +1,51 @@
+# What a screen gets when it takes this plugin: the component and its three settings. Tessera includes this file from
+# the screen's <name>.plugins.yaml and adds this plugin's components/ folder as an ESPHome external component.
+#
+# The settings are ESPHome entities, so Home Assistant, the Tessera editor (the plugin's details on the screen's Plugins
+# tab) and the screen's own settings page all show and change the same thing.
+
+switch:
+  # Demo data on every plant tile of this screen, for trying it without sensors. A tile without an entity shows the demo
+  # anyway.
+  - platform: template
+    id: microplant_demo
+    name: "Plant demo data"
+    icon: mdi:flask-outline
+    optimistic: true
+    restore_mode: RESTORE_DEFAULT_OFF
+    entity_category: config
+
+number:
+  # How often a tile asks Home Assistant for the sensors of its options, while it is on the glass.
+  - platform: template
+    id: microplant_poll
+    name: "Plant poll seconds"
+    icon: mdi:timer-refresh-outline
+    optimistic: true
+    min_value: 30
+    max_value: 300
+    step: 30
+    initial_value: 60
+    restore_value: true
+    unit_of_measurement: s
+    entity_category: config
+
+text:
+  # When the plant was last watered, as seconds since 1970, for a plant without a helper of its own in Home Assistant
+  # (the tile's option "Watering helper"). Kept on the screen across restarts; empty for never.
+  - platform: template
+    id: microplant_watered
+    name: "Plant watered at"
+    icon: mdi:watering-can-outline
+    optimistic: true
+    mode: text
+    min_length: 0
+    max_length: 12
+    restore_value: true
+    initial_value: ""
+    entity_category: config
+
+microplant:
+  demo: microplant_demo
+  poll: microplant_poll
+  watered: microplant_watered

@@ -1,0 +1,74 @@
+# The manifest: who made the plugin, what it may do, and what the Tessera app shows. It holds no code and no words:
+# every name, label and hint below is a key into translations/<language>.json, part "app".
+# Every field is explained in docs/MANIFEST.md of the plugins repository.
+id: microplant
+version: 0.1.0
+# 0.10 for tap_point() (the plant, its watering key and each reading answer a tap of their own), and 0.9 for the green,
+# amber and red of a reading (Tone::GOOD, ui::set_fill). Both are on Tessera's dev branch until its next release.
+api: "0.10"
+icon: sprout
+maintainer: alexscemo
+license: MIT
+stage: beta
+topics: [home]
+requires:
+  esphome: 2026.6.2
+boards: any
+flash_kb: 26
+
+permissions:
+  # The tile asks for the current state of the sensors named in its options (a minute of their history), every
+  # "Plant poll seconds"; a reading's card asks for the hourly means of its last 24 hours.
+  ha_commands: ["history/history_during_period", "recorder/statistics_during_period"]
+  # A tap on the plant tells the watering helper of the tile's options, by its kind.
+  home_assistant_actions: [input_datetime.set_datetime, input_button.press, button.press]
+
+answers:
+  # Home Assistant's statistics come as {"sensor.x": [{"start", "end", "mean"}, ...]}: the card needs the means alone.
+  - command: recorder/statistics_during_period
+    fields:
+      means: { path: "[*][*].mean", as: numbers }
+
+tiles:
+  # The plant and its four readings. It belongs to one entity, chosen in the editor: the soil moisture sensor, a plant
+  # of Home Assistant's Plant Monitor (its moisture, temperature and brightness as attributes), or a template sensor
+  # with the readings as attributes. The other sensors are entity ids in the options; their good ranges too.
+  - id: plant
+    name: tile_name
+    icon: sprout
+    # From 1x1 (the plant, its mood and the reading that matters most) to a page of its own (the plant with a watering
+    # key above four cells).
+    sizes: { min: 1x1, max: 3x3 }
+    # Worst case, a page of its own: ~25 labels and blocks of the cells and words, ~22 objects of the plant (blocks,
+    # lines and dots), plus the tile's own members (entity ids, ranges, readings, line points): about 6.5 KB.
+    memory: 6800
+    domains: [sensor, plant]
+    attributes: [moisture, temperature, humidity, brightness, illuminance, watered_at, unit_of_measurement]
+    example: tile_example
+    preview: { title: "{name}", value: "{state}" }
+    options:
+      - { id: temperature_entity, kind: text, label: temperature_entity, hint: temperature_entity_hint }
+      - { id: humidity_entity, kind: text, label: humidity_entity, hint: humidity_entity_hint }
+      - { id: light_entity, kind: text, label: light_entity, hint: light_entity_hint }
+      - { id: watered_entity, kind: text, label: watered_entity, hint: watered_entity_hint }
+      - { id: moisture_low, kind: number, min: 0, max: 100, step: 1, unit: "%", default: 30, label: moisture_low, hint: range_hint }
+      - { id: moisture_high, kind: number, min: 0, max: 100, step: 1, unit: "%", default: 70, label: moisture_high }
+      - { id: temperature_low, kind: number, min: -10, max: 40, step: 1, unit: "°C", default: 16, label: temperature_low }
+      - { id: temperature_high, kind: number, min: -10, max: 45, step: 1, unit: "°C", default: 28, label: temperature_high }
+      - { id: humidity_low, kind: number, min: 0, max: 100, step: 1, unit: "%", default: 40, label: humidity_low }
+      - { id: humidity_high, kind: number, min: 0, max: 100, step: 1, unit: "%", default: 70, label: humidity_high }
+      - { id: light_low, kind: number, min: 0, max: 100000, step: 100, unit: lx, default: 1000, label: light_low, hint: light_range_hint }
+      - { id: light_high, kind: number, min: 0, max: 120000, step: 500, unit: lx, default: 25000, label: light_high }
+
+cards:
+  # One reading of the plant: its value, where it stands in its range, what to do, and its last 24 hours.
+  - { id: metric, name: card_name, wide: true }
+
+bar_items:
+  # A watering can in the top bar while a plant on the glass is thirsty.
+  - { id: thirsty, label: bar_label, icon: water, example: bar_example }
+
+settings:
+  - { key: plant_demo_data, label: setting_demo, hint: setting_demo_hint }
+  - { key: plant_poll_seconds, label: setting_poll, hint: setting_poll_hint }
+  - { key: plant_watered_at, label: setting_watered, hint: setting_watered_hint }

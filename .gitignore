@@ -1,0 +1,8 @@
+.preview/
+__pycache__/
+dev/host-harness/deps/
+dev/host-harness/build/
+dev/host-harness/out/
+dev/host-harness/stubs/esphome/components/smart_display
+run-bench.bat
+bench-log.txt

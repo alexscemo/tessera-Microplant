@@ -1,0 +1,126 @@
+# What tools/preview.py shows (docs/PREVIEW.md of the plugins repository). The first tile shows the plugin best: a
+# Monstera whose soil sensor is the tile's entity, with its temperature, humidity and light polled through the app.
+time_zone: Europe/London
+
+tiles:
+  - tile: plant
+    name: Monstera
+    entity: sensor.monstera_soil_moisture
+    options:
+      temperature_entity: sensor.monstera_temperature
+      humidity_entity: sensor.living_room_humidity
+      light_entity: sensor.monstera_illuminance
+      watered_entity: input_datetime.monstera_watered
+  # Home Assistant's Plant Monitor: every reading an attribute of one entity, the soil far too wet.
+  - tile: plant
+    name: Ficus
+    entity: plant.ficus
+    sizes: [2x2, 1x1]
+  # A template sensor (or a RESTful sensor of a local API) with the readings as attributes: thirsty.
+  - tile: plant
+    name: Pothos
+    entity: sensor.pothos
+    sizes: [2x1, 1x2]
+  # No entity chosen yet: the demo plant.
+  - tile: plant
+    name: New plant
+    sizes: [2x3, 1x1]
+
+states:
+  sensor.monstera_soil_moisture:
+    state: "48"
+    attributes: { friendly_name: Monstera soil moisture, unit_of_measurement: "%", state_class: measurement }
+  plant.ficus:
+    state: problem
+    attributes: { friendly_name: Ficus, moisture: 84, temperature: 21.0, brightness: 9000, conductivity: 900 }
+  sensor.pothos:
+    state: "22"
+    attributes:
+      friendly_name: Pothos
+      unit_of_measurement: "%"
+      moisture: 22
+      temperature: 21.4
+      humidity: 52
+      illuminance: 4300
+      watered_at: "{epoch-6d}"
+
+commands:
+  # The tile's poll: the state of each sensor of its options at the start of the last minute.
+  "history/history_during_period":
+    sensor.monstera_temperature: [{ s: "22.4", a: { unit_of_measurement: "°C" }, lu: 1791999930 }]
+    sensor.living_room_humidity: [{ s: "55", a: { unit_of_measurement: "%" }, lu: 1791999930 }]
+    sensor.monstera_illuminance: [{ s: "8200", a: { unit_of_measurement: lx }, lu: 1791999930 }]
+    input_datetime.monstera_watered: [{ s: "2026-10-11 08:30:00", a: { timestamp: 1791703800 }, lu: 1791703800 }]
+  # A reading's card: hourly means of the last day (Home Assistant's own shape; the manifest's `answers` maps it).
+  "recorder/statistics_during_period":
+    sensor.monstera_soil_moisture:
+      - { start: 1791913560000, end: 1791917160000, mean: 63.1 }
+      - { start: 1791917160000, end: 1791920760000, mean: 61.8 }
+      - { start: 1791920760000, end: 1791924360000, mean: 60.2 }
+      - { start: 1791924360000, end: 1791927960000, mean: 59.0 }
+      - { start: 1791927960000, end: 1791931560000, mean: 57.7 }
+      - { start: 1791931560000, end: 1791935160000, mean: 56.9 }
+      - { start: 1791935160000, end: 1791938760000, mean: 55.4 }
+      - { start: 1791938760000, end: 1791942360000, mean: 54.6 }
+      - { start: 1791942360000, end: 1791945960000, mean: 53.3 }
+      - { start: 1791945960000, end: 1791949560000, mean: 52.5 }
+      - { start: 1791949560000, end: 1791953160000, mean: 51.6 }
+      - { start: 1791953160000, end: 1791956760000, mean: 50.8 }
+      - { start: 1791956760000, end: 1791960360000, mean: 50.1 }
+      - { start: 1791960360000, end: 1791963960000, mean: 49.5 }
+      - { start: 1791963960000, end: 1791967560000, mean: 49.0 }
+      - { start: 1791967560000, end: 1791971160000, mean: 48.6 }
+    sensor.monstera_temperature:
+      - { start: 1791913560000, end: 1791917160000, mean: 20.1 }
+      - { start: 1791917160000, end: 1791920760000, mean: 20.0 }
+      - { start: 1791920760000, end: 1791924360000, mean: 19.8 }
+      - { start: 1791924360000, end: 1791927960000, mean: 19.6 }
+      - { start: 1791927960000, end: 1791931560000, mean: 19.5 }
+      - { start: 1791931560000, end: 1791935160000, mean: 19.9 }
+      - { start: 1791935160000, end: 1791938760000, mean: 20.6 }
+      - { start: 1791938760000, end: 1791942360000, mean: 21.3 }
+      - { start: 1791942360000, end: 1791945960000, mean: 21.9 }
+      - { start: 1791945960000, end: 1791949560000, mean: 22.4 }
+      - { start: 1791949560000, end: 1791953160000, mean: 22.8 }
+      - { start: 1791953160000, end: 1791956760000, mean: 23.0 }
+      - { start: 1791956760000, end: 1791960360000, mean: 23.1 }
+      - { start: 1791960360000, end: 1791963960000, mean: 22.9 }
+      - { start: 1791963960000, end: 1791967560000, mean: 22.6 }
+      - { start: 1791967560000, end: 1791971160000, mean: 22.4 }
+    sensor.living_room_humidity:
+      - { start: 1791913560000, end: 1791917160000, mean: 52 }
+      - { start: 1791917160000, end: 1791920760000, mean: 53 }
+      - { start: 1791920760000, end: 1791924360000, mean: 54 }
+      - { start: 1791924360000, end: 1791927960000, mean: 55 }
+      - { start: 1791927960000, end: 1791931560000, mean: 56 }
+      - { start: 1791931560000, end: 1791935160000, mean: 56 }
+      - { start: 1791935160000, end: 1791938760000, mean: 55 }
+      - { start: 1791938760000, end: 1791942360000, mean: 54 }
+      - { start: 1791942360000, end: 1791945960000, mean: 53 }
+      - { start: 1791945960000, end: 1791949560000, mean: 53 }
+      - { start: 1791949560000, end: 1791953160000, mean: 54 }
+      - { start: 1791953160000, end: 1791956760000, mean: 55 }
+      - { start: 1791956760000, end: 1791960360000, mean: 56 }
+      - { start: 1791960360000, end: 1791963960000, mean: 56 }
+      - { start: 1791963960000, end: 1791967560000, mean: 55 }
+      - { start: 1791967560000, end: 1791971160000, mean: 55 }
+    sensor.monstera_illuminance:
+      - { start: 1791913560000, end: 1791917160000, mean: 0 }
+      - { start: 1791917160000, end: 1791920760000, mean: 0 }
+      - { start: 1791920760000, end: 1791924360000, mean: 0 }
+      - { start: 1791924360000, end: 1791927960000, mean: 0 }
+      - { start: 1791927960000, end: 1791931560000, mean: 120 }
+      - { start: 1791931560000, end: 1791935160000, mean: 900 }
+      - { start: 1791935160000, end: 1791938760000, mean: 2400 }
+      - { start: 1791938760000, end: 1791942360000, mean: 4800 }
+      - { start: 1791942360000, end: 1791945960000, mean: 7100 }
+      - { start: 1791945960000, end: 1791949560000, mean: 9300 }
+      - { start: 1791949560000, end: 1791953160000, mean: 10400 }
+      - { start: 1791953160000, end: 1791956760000, mean: 9800 }
+      - { start: 1791956760000, end: 1791960360000, mean: 8900 }
+      - { start: 1791960360000, end: 1791963960000, mean: 8600 }
+      - { start: 1791963960000, end: 1791967560000, mean: 8400 }
+      - { start: 1791967560000, end: 1791971160000, mean: 8200 }
+
+cards:
+  - { card: metric, entity: sensor.monstera_soil_moisture }
