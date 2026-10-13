@@ -53,9 +53,12 @@ class Microplant : public Component, public tessera::Plugin {
   bool demo() const { return demo_ && demo_->state; }
   uint32_t poll_seconds() const;
   bool standby() const { return standby_; }
-  // The screen's own "last watered" (the text entity "Plant watered at"), for a plant without a watering helper.
-  uint32_t screen_watered() const;
-  void store_screen_watered(uint32_t epoch);
+  // The screen's own waterings (the text entity "Plant watered at"), per tile, for plants without a watering helper.
+  // Tile -1 is every plant: the latest of all to read, all of them to write.
+  uint32_t screen_watered(int tile) const;
+  void store_screen_watered(int tile, uint32_t epoch);
+  // The longest text the entity keeps (max_length in plugin.yaml).
+  static constexpr size_t WATERED_STORE_LENGTH = 255;
   // The demo plant's watering, kept for the life of the screen so every demo tile tells the same story.
   uint32_t demo_watered(uint32_t now);
   void set_demo_watered(uint32_t epoch) { demo_watered_ = epoch; }

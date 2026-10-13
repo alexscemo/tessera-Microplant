@@ -390,7 +390,7 @@ void PlantTile::on_state(JsonObjectConst data) {
   state_value_ = plant_domain_ ? NAN : number_of(state);
   JsonObjectConst attrs = data["attributes"];
   attribute_[MOISTURE] = number_of(attrs["moisture"]);
-  attribute_[TEMPERATURE] = number_of(attrs["temperature"]);
+  attribute_[TEMPERATURE] = celsius_of_attribute(number_of(attrs["temperature"]));
   attribute_[HUMIDITY] = number_of(attrs["humidity"]);
   attribute_[LIGHT] = number_of(attrs["brightness"]);
   if (std::isnan(attribute_[LIGHT])) attribute_[LIGHT] = number_of(attrs["illuminance"]);
@@ -499,7 +499,7 @@ uint32_t PlantTile::watered(uint32_t now) const {
   if (demo()) return plugin_->demo_watered(now);
   uint32_t at = std::max({watered_here_, watered_polled_, watered_attribute_});
   // A plant without a helper or an attribute of its own keeps its watering on the screen (the text entity).
-  if (!*watered_entity_ && !watered_attribute_) at = std::max(at, plugin_->screen_watered());
+  if (!*watered_entity_ && !watered_attribute_) at = std::max(at, plugin_->screen_watered(tile_));
   return at;
 }
 
@@ -624,7 +624,7 @@ void PlantTile::water(uint32_t now) {
       else if (starts_with(watered_entity_, "button."))
         tessera::action("button.press", watered_entity_);
     } else if (!watered_attribute_) {
-      plugin_->store_screen_watered(now);
+      plugin_->store_screen_watered(tile_, now);
     }
   }
   read_values(now);
@@ -962,15 +962,14 @@ uint32_t Microplant::poll_seconds() const {
   return std::clamp(static_cast<uint32_t>(poll_->state), config::POLL_MIN_SECONDS, config::POLL_MAX_SECONDS);
 }
 
-uint32_t Microplant::screen_watered() const {
-  if (!watered_ || watered_->state.empty()) return 0;
-  return static_cast<uint32_t>(strtoul(watered_->state.c_str(), nullptr, 10));
+uint32_t Microplant::screen_watered(int tile) const {
+  return watered_ ? stored_watering(watered_->state.c_str(), tile) : 0;
 }
 
-void Microplant::store_screen_watered(uint32_t epoch) {
+void Microplant::store_screen_watered(int tile, uint32_t epoch) {
   if (!watered_ || !epoch) return;
-  char text[16];
-  snprintf(text, sizeof(text), "%lu", static_cast<unsigned long>(epoch));
+  char text[WATERED_STORE_LENGTH + 1];
+  store_watering(watered_->state.c_str(), tile, epoch, text, sizeof(text));
   auto call = watered_->make_call();
   call.set_value(text);
   call.perform();
@@ -1011,9 +1010,9 @@ bool Microplant::settings(tessera::SettingsPage &page) {
                 call.set_value(static_cast<float>(v));
                 call.perform();
               });
-  page.action(text("set_watered"), "\U000F058C", [this]() { store_screen_watered(tessera::epoch()); }, nullptr,
+  page.action(text("set_watered"), "\U000F058C", [this]() { store_screen_watered(-1, tessera::epoch()); }, nullptr,
               [this]() -> std::string {
-                const uint32_t at = screen_watered();
+                const uint32_t at = screen_watered(-1);
                 return at ? tessera::date_text(at) + " " + tessera::clock_text(at) : std::string(text("set_never"));
               });
   return true;

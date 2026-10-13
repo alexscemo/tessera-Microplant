@@ -26,6 +26,9 @@
 - **Values cut with dots** in the narrow 1x1 cells of the portrait screen (seen in the pictures, not a finding): those
   cells use short texts ("22" with a degree sign, "8.2k").
 - `preview.yaml` now has 24 h statistics for every sensor, not only the soil.
+- Review fixes: the screen's own waterings are kept per tile ("3=1791703800,5=...", "*" for every plant), so watering
+  one plant without a helper no longer waters the others; a Plant Monitor temperature above 45 is read as °F and
+  converted. Both in `microplant_model.h`, tested in `model_test.cpp` (it builds alone with g++, no deps needed).
 
 ## Not verified yet
 
@@ -44,6 +47,6 @@
 ## Ideas not done
 
 - Show `health_of()` somewhere (a ring or a small score) — the brief mentioned a health score.
-- Several plants per screen sharing one fallback "watered" entity: they currently share it; a per-tile helper avoids it.
+- The per-tile waterings follow the tile index: moving tiles around in the editor can swap two plants' dates.
 - `wait: wrong_entity` is treated as "no entity" (demo); could say so.
 - A tap action so Tessera's own sensor tiles can open the metric card.

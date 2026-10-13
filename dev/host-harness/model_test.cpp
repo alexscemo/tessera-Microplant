@@ -1,5 +1,6 @@
 #include "../../components/microplant/microplant_model.h"
 #include <cassert>
+#include <cmath>
 #include <cstdio>
 #include <ctime>
 #include <string>
@@ -34,5 +35,29 @@ int main(){
   assert(demo_value(MOISTURE, now + 600, now) < 30);
   char v[24]; value_text(LIGHT, 1260, false, "", v, sizeof v); assert(std::string(v) == "1.3k lx");
   value_text(TEMPERATURE, 21.44f, false, "\xC2\xB0", v, sizeof v); assert(std::string(v) == "21.4\xC2\xB0" "C");
+  // Units: a Plant Monitor temperature above 45 is Fahrenheit.
+  assert(celsius_of_attribute(21.0f) == 21.0f && std::fabs(celsius_of_attribute(72.0f) - 22.2222f) < 0.01f);
+  assert(std::isnan(celsius_of_attribute(NAN)));
+  // The screen's waterings: one per tile, "*" for every plant, a bare number (the old form) counts as "*".
+  auto put = [](const std::string &store, int tile, uint32_t epoch, size_t size = 64) {
+    char out[64];
+    store_watering(store.c_str(), tile, epoch, out, size);
+    return std::string(out);
+  };
+  std::string w = put("", 3, 100);
+  assert(w == "3=100");
+  w = put(w, 5, 200);
+  assert(w == "3=100,5=200");
+  assert(stored_watering(w.c_str(), 3) == 100 && stored_watering(w.c_str(), 5) == 200 && stored_watering(w.c_str(), 4) == 0);
+  assert(stored_watering(w.c_str(), -1) == 200);
+  w = put(w, 3, 300);
+  assert(w == "5=200,3=300");
+  w = put(w, 13, 400);
+  assert(stored_watering(w.c_str(), 1) == 0 && stored_watering(w.c_str(), 13) == 400);
+  w = put(w, -1, 500);
+  assert(w == "*=500" && stored_watering(w.c_str(), 7) == 500);
+  assert(stored_watering("1791703800", 2) == 1791703800u);  // the old form
+  assert(put("1791703800", 2, 1791800000) == "1791703800,2=1791800000");
+  assert(put("1=100,2=200", 3, 300, 12) == "2=200,3=300");  // the oldest gives way
   puts("model: all good");
 }

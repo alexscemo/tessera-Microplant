@@ -37,6 +37,8 @@ constexpr float LIGHT_FACTOR = 2.0f;        // times
 constexpr uint32_t THANKS_SECONDS = 10;
 // The history a reading's card shows: the hourly means of Home Assistant's statistics.
 constexpr int HISTORY_HOURS = 24;
+// A temperature attribute above this is in degrees Fahrenheit (see celsius_of_attribute).
+constexpr float FAHRENHEIT_ABOVE = 45.0f;
 
 // Demo data: the soil starts full and drains one point every few seconds after a watering, so a person sees every mood
 // within minutes; the air and the light wander on a cycle of ten minutes.
@@ -230,6 +232,76 @@ inline float parse_number(const char *text) {
   char *end = nullptr;
   const float v = strtof(buf, &end);
   return end == buf || std::isnan(v) || std::isinf(v) ? NAN : v;
+}
+
+// ---- Units ----
+
+// A temperature of an attribute, which comes without a unit: Home Assistant's Plant Monitor sends it in the unit of
+// the house. Above 45 it cannot be degrees Celsius in a room (the range options stop there), so it is Fahrenheit.
+inline float celsius_of_attribute(float t) {
+  return !std::isnan(t) && t > config::FAHRENHEIT_ABOVE ? (t - 32.0f) * 5.0f / 9.0f : t;
+}
+
+// ---- The screen's own waterings ----
+
+// The text entity "Plant watered at" keeps the waterings of the plants without a helper, one per tile:
+// "3=1791703800,5=1791617400". "*" is every plant (the settings page's "Watered now"); a bare number, as version 0.1.0
+// wrote it before release, counts as "*". The watering of `tile` is its own or "*", whichever is later; tile -1 asks
+// for the latest of all.
+inline uint32_t stored_watering(const char *store, int tile) {
+  uint32_t best = 0;
+  if (!store) return 0;
+  for (const char *p = store; *p;) {
+    const char *end = strchr(p, ',');
+    if (!end) end = p + strlen(p);
+    const char *eq = static_cast<const char *>(memchr(p, '=', static_cast<size_t>(end - p)));
+    const char *value = eq ? eq + 1 : p;
+    const bool every = !eq || (eq - p == 1 && *p == '*');
+    const bool mine = !every && tile >= 0 && atoi(p) == tile;
+    if (tile < 0 || every || mine) {
+      const uint32_t v = static_cast<uint32_t>(strtoul(value, nullptr, 10));
+      if (v > best) best = v;
+    }
+    p = *end ? end + 1 : end;
+  }
+  return best;
+}
+
+// `store` with the watering of `tile` (-1: "*", every plant) set to `epoch`, in `out`. "*" replaces every entry, since
+// it is later than all of them. The oldest entries give way when `out` is full.
+inline void store_watering(const char *store, int tile, uint32_t epoch, char *out, size_t size) {
+  char key[12];
+  if (tile < 0) snprintf(key, sizeof(key), "*");
+  else snprintf(key, sizeof(key), "%d", tile);
+  // The other tiles' entries, newest last as they were written, then this one.
+  const char *keep[24];
+  size_t lengths[24], count = 0;
+  if (store && tile >= 0) {
+    for (const char *p = store; *p && count < 24;) {
+      const char *end = strchr(p, ',');
+      if (!end) end = p + strlen(p);
+      const size_t n = static_cast<size_t>(end - p);
+      const size_t k = strlen(key);
+      const bool same = n > k && strncmp(p, key, k) == 0 && p[k] == '=';
+      if (n && !same) {
+        keep[count] = p;
+        lengths[count++] = n;
+      }
+      p = *end ? end + 1 : end;
+    }
+  }
+  char last[32];
+  const int last_n = snprintf(last, sizeof(last), "%s=%lu", key, static_cast<unsigned long>(epoch));
+  size_t first = 0, total = static_cast<size_t>(last_n);
+  for (size_t i = 0; i < count; ++i) total += lengths[i] + 1;
+  while (first < count && total + 1 > size) total -= lengths[first++] + 1;
+  size_t at = 0;
+  for (size_t i = first; i < count; ++i) {
+    memcpy(out + at, keep[i], lengths[i]);
+    at += lengths[i];
+    out[at++] = ',';
+  }
+  snprintf(out + at, size - at, "%s", last);
 }
 
 // ---- Words for a reading ----

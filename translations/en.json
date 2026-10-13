@@ -92,6 +92,6 @@
     "setting_poll": "Ask every",
     "setting_poll_hint": "How often a plant tile asks Home Assistant for the sensors of its options, in seconds.",
     "setting_watered": "Watered at",
-    "setting_watered_hint": "The last watering of a plant without a helper, as seconds since 1970. Empty for never."
+    "setting_watered_hint": "The last watering of each plant without a helper, per tile: tile=seconds since 1970, and * for every plant. Empty for never."
   }
 }

@@ -5,4 +5,6 @@
 - Soil moisture, temperature, air humidity and light, each green, amber or red against a range you set.
 - Tap the plant or **Watered** when you water it; tap a reading for its range, what to do and its last 24 hours.
 - Demo data until you choose a sensor, or with the setting **Plant demo data**.
+- Plants without a watering helper each keep their own watering date on the screen.
+- A Plant Monitor that sends temperatures in °F shows them right.
 - Needs Tessera's dev firmware (plugin API 0.10) until its next release.

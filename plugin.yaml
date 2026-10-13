@@ -31,8 +31,9 @@ number:
     entity_category: config
 
 text:
-  # When the plant was last watered, as seconds since 1970, for a plant without a helper of its own in Home Assistant
-  # (the tile's option "Watering helper"). Kept on the screen across restarts; empty for never.
+  # When each plant without a helper of its own in Home Assistant (the tile's option "Watering helper") was last
+  # watered, as seconds since 1970 per tile: "3=1791703800,5=1791617400", "*" for every plant. Kept on the screen across
+  # restarts; empty for never.
   - platform: template
     id: microplant_watered
     name: "Plant watered at"
@@ -40,7 +41,7 @@ text:
     optimistic: true
     mode: text
     min_length: 0
-    max_length: 12
+    max_length: 255
     restore_value: true
     initial_value: ""
     entity_category: config
