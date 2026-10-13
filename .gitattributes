@@ -1,0 +1,4 @@
+# Keep LF everywhere: the shell scripts run in WSL/Linux and ESPHome builds there.
+* text=auto eol=lf
+*.bat text eol=crlf
+*.png binary
