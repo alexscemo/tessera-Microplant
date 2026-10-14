@@ -2,7 +2,7 @@
 # every name, label and hint below is a key into translations/<language>.json, part "app".
 # Every field is explained in docs/MANIFEST.md of the plugins repository.
 id: microplant
-version: 0.1.0
+version: 0.2.0
 # 0.10 for tap_point() (the plant, its watering key and each reading answer a tap of their own), and 0.9 for the green,
 # amber and red of a reading (Tone::GOOD, ui::set_fill). Both are on Tessera's dev branch until its next release.
 api: "0.10"
@@ -18,8 +18,9 @@ flash_kb: 26
 
 permissions:
   # The tile asks for the current state of the sensors named in its options (a minute of their history), every
-  # "Plant poll seconds"; a reading's card asks for the hourly means of its last 24 hours.
-  ha_commands: ["history/history_during_period", "recorder/statistics_during_period"]
+  # "Plant poll seconds" (a plant of Plant Monitor: its sensors, values and ranges); a reading's card asks for the hourly
+  # means of its last 24 hours.
+  ha_commands: ["history/history_during_period", "recorder/statistics_during_period", "plant/get_info"]
   # A tap on the plant tells the watering helper of the tile's options, by its kind.
   home_assistant_actions: [input_datetime.set_datetime, input_button.press, button.press]
 
@@ -31,19 +32,20 @@ answers:
 
 tiles:
   # The plant and its four readings. It belongs to one entity, chosen in the editor: the soil moisture sensor, a plant
-  # of Home Assistant's Plant Monitor (its moisture, temperature and brightness as attributes), or a template sensor
-  # with the readings as attributes. The other sensors are entity ids in the options; their good ranges too.
+  # of Plant Monitor (its sensors and good ranges come from the plant itself), or a template sensor with the readings
+  # as attributes. The other sensors are entity ids in the options; their good ranges too, unless the plant has its own.
   - id: plant
     name: tile_name
     icon: sprout
     # From 1x1 (the plant, its mood and the reading that matters most) to a page of its own (the plant with a watering
-    # key above four cells).
-    sizes: { min: 1x1, max: 3x3 }
+    # key above four cells). `full`: the whole page of the grid (2x3 on the 4-inch square), which the editor offers a
+    # plugin tile only with it.
+    sizes: { min: 1x1, max: 3x3, full: true }
     # Worst case, a page of its own: ~25 labels and blocks of the cells and words, ~22 objects of the plant (blocks,
     # lines and dots), plus the tile's own members (entity ids, ranges, readings, line points): about 6.5 KB.
     memory: 6800
     domains: [sensor, plant]
-    attributes: [moisture, temperature, humidity, brightness, illuminance, watered_at, unit_of_measurement]
+    attributes: [moisture, temperature, humidity, brightness, illuminance, watered_at, unit_of_measurement, species]
     example: tile_example
     preview: { title: "{name}", value: "{state}" }
     options:

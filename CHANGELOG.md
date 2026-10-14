@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.0 - 2026-10-14
+- A plant of Plant Monitor brings its own sensors and good ranges: no sensors or ranges to fill in.
+- The Plant tile can take a whole page (2x3 on the 4-inch square).
+
 ## 0.1.0 - 2026-10-13
 - First version: a plant tile that shows how your houseplant feels, from 1x1 to a page of its own.
 - Soil moisture, temperature, air humidity and light, each green, amber or red against a range you set.

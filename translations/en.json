@@ -85,7 +85,7 @@
     "humidity_high": "Air: highest good",
     "light_low": "Light: lowest good",
     "light_high": "Light: highest good",
-    "range_hint": "Green inside the range, amber just outside it, red far outside.",
+    "range_hint": "Green inside the range, amber just outside it, red far outside. A plant of Plant Monitor uses its own ranges.",
     "light_range_hint": "In the light sensor's unit: lux, or 0 to 100 for a sensor in %.",
     "setting_demo": "Demo data",
     "setting_demo_hint": "Every plant tile on this screen shows a demo plant whose soil dries out in minutes.",

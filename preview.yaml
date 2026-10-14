@@ -11,7 +11,7 @@ tiles:
       humidity_entity: sensor.living_room_humidity
       light_entity: sensor.monstera_illuminance
       watered_entity: input_datetime.monstera_watered
-  # Home Assistant's Plant Monitor: every reading an attribute of one entity, the soil far too wet.
+  # Plant Monitor: the plant tells its sensors, readings and ranges (plant/get_info), the soil far too wet.
   - tile: plant
     name: Ficus
     entity: plant.ficus
@@ -32,7 +32,7 @@ states:
     attributes: { friendly_name: Monstera soil moisture, unit_of_measurement: "%", state_class: measurement }
   plant.ficus:
     state: problem
-    attributes: { friendly_name: Ficus, moisture: 84, temperature: 21.0, brightness: 9000, conductivity: 900 }
+    attributes: { friendly_name: Ficus, species: Ficus lyrata, moisture_status: High }
   sensor.pothos:
     state: "22"
     attributes:
@@ -51,6 +51,14 @@ commands:
     sensor.living_room_humidity: [{ s: "55", a: { unit_of_measurement: "%" }, lu: 1791999930 }]
     sensor.monstera_illuminance: [{ s: "8200", a: { unit_of_measurement: lx }, lu: 1791999930 }]
     input_datetime.monstera_watered: [{ s: "2026-10-11 08:30:00", a: { timestamp: 1791703800 }, lu: 1791703800 }]
+  # Plant Monitor's plant: Home Assistant's answer, {"result": {...}}.
+  "plant/get_info":
+    result:
+      moisture: { max: 60, min: 15, current: "84", icon: "mdi:water", unit_of_measurement: "%", sensor: sensor.ficus_soil_moisture }
+      temperature: { max: 30, min: 12, current: "21.0", icon: "mdi:thermometer", unit_of_measurement: "°C", sensor: sensor.ficus_temperature }
+      illuminance: { max: 35000, min: 1500, current: "9000", icon: "mdi:brightness-6", unit_of_measurement: lx, sensor: sensor.ficus_illuminance }
+      humidity: { max: 70, min: 30, current: "48", icon: "mdi:water-percent", unit_of_measurement: "%", sensor: sensor.ficus_air_humidity }
+      conductivity: { max: 2000, min: 350, current: "900", icon: "mdi:spa-outline", unit_of_measurement: "µS/cm", sensor: sensor.ficus_conductivity }
   # A reading's card: hourly means of the last day (Home Assistant's own shape; the manifest's `answers` maps it).
   "recorder/statistics_during_period":
     sensor.monstera_soil_moisture:

@@ -35,6 +35,10 @@
 - Never on a real screen. Untested: real tap coordinates, animation smoothness on an RGB panel, memory/flash on the
   CYD, the HA websocket answers' real shape (`history_during_period` compressed rows, statistics ms timestamps), °F
   sensors, the Italian texts on glass.
+- **Report upstream**: the firmware drops a plugin tile's entity of a domain it has no tile for (`plant`), see
+  DESIGN.md "Plant Monitor". MicroPlant guesses the id from the plant's name meanwhile; a renamed entity id breaks it.
+- Plant Monitor's `plant/get_info` answer is taken from its source code (Olen/homeassistant-plant), not from a real
+  Home Assistant yet.
 - Starting `tools/preview.py` from Windows loses the backslashes of the path when it hands over to WSL: a bug in the
   plugins repository, worth reporting upstream. Run it inside WSL (`run-bench.bat` does).
 

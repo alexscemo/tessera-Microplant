@@ -242,6 +242,27 @@ inline float celsius_of_attribute(float t) {
   return !std::isnan(t) && t > config::FAHRENHEIT_ABOVE ? (t - 32.0f) * 5.0f / 9.0f : t;
 }
 
+// ---- Plant Monitor ----
+
+// The entity id Plant Monitor gives a plant of this name, as Home Assistant makes one: "Ficus Lyrata" is
+// plant.ficus_lyrata. shortcut: a letter outside ASCII becomes "_" where Home Assistant would spell it in ASCII ("è" is
+// "e"), and a renamed entity id is not found; drop it once Tessera hands a plugin tile its plant entity.
+inline void plant_entity_of(const char *name, char *out, size_t size) {
+  size_t n = snprintf(out, size, "plant.");
+  bool gap = false;
+  for (const char *c = name; *c && n + 1 < size; ++c) {
+    const char lower = static_cast<char>(*c >= 'A' && *c <= 'Z' ? *c - 'A' + 'a' : *c);
+    if ((lower >= 'a' && lower <= 'z') || (lower >= '0' && lower <= '9')) {
+      if (gap && n > 6 && n + 2 < size) out[n++] = '_';
+      gap = false;
+      out[n++] = lower;
+    } else {
+      gap = true;
+    }
+  }
+  out[n] = 0;
+}
+
 // ---- The screen's own waterings ----
 
 // The text entity "Plant watered at" keeps the waterings of the plants without a helper, one per tile:

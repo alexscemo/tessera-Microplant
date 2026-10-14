@@ -59,5 +59,10 @@ int main(){
   assert(stored_watering("1791703800", 2) == 1791703800u);  // the old form
   assert(put("1791703800", 2, 1791800000) == "1791703800,2=1791800000");
   assert(put("1=100,2=200", 3, 300, 12) == "2=200,3=300");  // the oldest gives way
+  // Plant Monitor's entity id of a plant's name.
+  char id[64];
+  plant_entity_of("Ficus Lyrata", id, sizeof id); assert(std::string(id) == "plant.ficus_lyrata");
+  plant_entity_of("  Monstera #2! ", id, sizeof id); assert(std::string(id) == "plant.monstera_2");
+  plant_entity_of("Ficus", id, 10); assert(std::string(id) == "plant.fic");
   puts("model: all good");
 }

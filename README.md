@@ -35,6 +35,8 @@ Made for the 4-inch square screens (480 x 480), and drawn for every size from on
    plant whose soil dries out in minutes, so you can try the moods and the watering at once.
 3. In the inspector, choose the tile's **entity**: your plant's soil moisture sensor, a `plant` entity of Home
    Assistant's Plant Monitor, or a sensor that has all the readings as attributes (see "Where the readings come from").
+   A plant of [Plant Monitor](https://github.com/Olen/homeassistant-plant) is the easiest: the tile finds its sensors
+   and takes its good ranges from the plant itself, so you can skip steps 4 and 6.
 4. Fill in the sensors the entity does not have: **Temperature sensor**, **Humidity sensor** and **Light sensor**, as
    entity ids such as `sensor.monstera_temperature`. Leave them empty when the entity has the reading as an attribute.
 5. Optional, but best: make a helper in Home Assistant (Settings, Devices & services, Helpers, **Date and/or time**,
@@ -52,6 +54,8 @@ The screen never makes a network connection of its own, by Tessera's rules. Home
 
 - **The tile's entity** is sent to the screen by Tessera at every change: its state (the soil moisture) and its
   attributes `moisture`, `temperature`, `humidity`, `brightness` or `illuminance`, and `watered_at`.
+- **A plant of Plant Monitor** is asked for its sensors, their readings and its good ranges (`plant/get_info`), at
+  the same pace as the sensors below. Its ranges replace the tile's.
 - **The sensors in the options** are asked of Home Assistant through the Tessera app, every 60 seconds by default
   (the setting **Plant poll seconds**, 30 to 300), only while the tile is on the glass and the screen is awake. This is
   the same as reading `/api/states/<entity>` of Home Assistant's REST API, over the app's own connection.

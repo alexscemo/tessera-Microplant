@@ -32,7 +32,13 @@ MetricCard::open ──▶ tessera::send(recorder/statistics_during_period, 24 h
                  app maps it via manifest `answers` → {"means":[...]} ──▶ MetricCard::answer
 ```
 
-- **Sources per reading** (`PlantTile::read_values`): demo → option sensor (polled) → attribute of the tile entity
+- **Plant Monitor** (`plant.*` tile entity): every poll also sends `plant/get_info` (Olen's integration), whose answer
+  `{"result": {"moisture": {"current", "min", "max", "sensor", "unit_of_measurement"}, "temperature", "illuminance",
+  "humidity", ...}}` gives the value, the range (it replaces the options' range) and the sensor (for the card's history).
+  Tessera's firmware (main and dev, 2026-10-14) drops a plugin tile's entity whose domain has no Tessera tile
+  (`valid_entity` in `page_receiver.cpp`), so `context.entity` is "" for a `plant.*`. Until that is fixed upstream the
+  tile spots a Plant Monitor plant by its `species` attribute and guesses `plant.<slug of its name>` (`plant_entity_of`).
+- **Sources per reading** (`PlantTile::read_values`): demo → option sensor (polled) → Plant Monitor → attribute of the tile entity
   (`moisture`, `temperature`, `humidity`, `brightness` or `illuminance`) → for soil, the entity's own state.
 - **Tile entity domains:** `sensor` (a soil sensor, or a template/REST sensor with attributes) or `plant` (HA Plant
   Monitor; its state is ok/problem, so the state is never read as moisture).
