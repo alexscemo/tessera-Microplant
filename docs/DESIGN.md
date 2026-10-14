@@ -86,7 +86,7 @@ MetricCard::open ──▶ tessera::send(recorder/statistics_during_period, 24 h
 | tall | narrow, h ≥ 200 (1x2, 1x3) | plant top, mood, watered, cells 2x2 |
 | small | 1x1 | plant, mood, worst reading, watered |
 
-Cells adapt: ground block + bar when ≥ 40 px high; side-by-side icon/value/name when ≥ 120 px wide, stacked otherwise;
+Without a light reading (`has_light()`: Plant Monitor answered without one, or no light attribute) the light cell is hidden and `place_cells()` spreads the other three, the last row's cells sharing its width. Cells adapt: ground block + bar when ≥ 40 px high; side-by-side icon/value/name when ≥ 120 px wide, stacked otherwise;
 one value font for all four (largest where `"88.8°C"` fits).
 
 ## Taps

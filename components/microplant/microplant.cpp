@@ -140,7 +140,10 @@ class PlantTile : public tessera::Tile {
   void layout_tall();
   void layout_small();
   void make_cells(const Box &area, int columns);
-  void make_cell(int metric, const Box &b);
+  void make_cell(int metric, bool ground);
+  void place_cells();
+  void place_cell(int metric, const Box &b);
+  bool has_light() const;
   void make_water_key(const Box &b);
   bool demo() const { return plugin_->demo() || !chosen_; }
   bool polls() const;
@@ -164,6 +167,7 @@ class PlantTile : public tessera::Tile {
   // Plant Monitor (plant/get_info): the sensor of each reading, its value and its range from the plant's own settings.
   char info_entities_[METRIC_COUNT][64]{};
   float info_[METRIC_COUNT]{NAN, NAN, NAN, NAN};
+  bool info_known_ = false;  // Plant Monitor answered once
 
   // What the tile knows.
   bool chosen_ = false;                 // an entity is chosen and Home Assistant sent it
@@ -184,6 +188,9 @@ class PlantTile : public tessera::Tile {
   lv_obj_t *key_{}, *key_icon_{}, *key_label_{};
   Box key_box_;
   Cell cells_[METRIC_COUNT];
+  Box cells_area_;
+  int cells_columns_ = 0;
+  bool light_shown_ = true;
   Font value_font_ = Font::TITLE;
   bool compact_values_ = false;
   bool roomy_note_ = false;  // the note has a line of its own (a page-size tile): it may say more
@@ -308,6 +315,8 @@ void PlantTile::make_cells(const Box &area, int columns) {
   const int rows = METRIC_COUNT / columns;
   const int cw = (area.w - gap * (columns - 1)) / columns;
   const int ch = (area.h - gap * (rows - 1)) / rows;
+  cells_area_ = area;
+  cells_columns_ = columns;
   // One font for every value, the largest in which the widest of them fits.
   value_font_ = Font::BODY;
   const int room = cw >= ui::px(120) ? cw - ui::line_height(Font::ICON_SMALL) - ui::px(18) : cw - ui::px(10);
@@ -320,61 +329,106 @@ void PlantTile::make_cells(const Box &area, int columns) {
   // Too narrow even for the smallest font: the short texts (no decimal of a temperature, no "lx").
   compact_values_ = value_font_ == Font::BODY && (ui::text_width("88.8\xC2\xB0" "C", Font::BODY) > room ||
                                                   ui::text_width("88.8k lx", Font::BODY) > room);
-  for (int i = 0; i < METRIC_COUNT; ++i)
-    make_cell(i, {area.x + (i % columns) * (cw + gap), area.y + (i / columns) * (ch + gap), cw, ch});
+  for (int i = 0; i < METRIC_COUNT; ++i) make_cell(i, ch >= ui::px(40));
+  place_cells();
 }
 
-// A cell: on a soft ground, the reading's icon, its value, its name and a bar in its colour, as far as they fit.
-void PlantTile::make_cell(int metric, const Box &b) {
+// The parts of a cell: on a soft ground, the reading's icon, its value, its name and a bar in its colour. Where they
+// go is place_cell's.
+void PlantTile::make_cell(int metric, bool ground) {
   Cell &cell = cells_[metric];
-  cell.box = b;
-  const int pad = ui::px(6), bar_h = ui::px(4);
-  const int icon_h = ui::line_height(Font::ICON_SMALL), value_h = ui::line_height(value_font_),
-            name_h = ui::line_height(Font::BODY);
-  const bool ground = b.h >= ui::px(40);
   // With a ground, everything of the cell lives inside it (at positions from its corner), so no part sits over another.
   lv_obj_t *host = parent_;
-  int ox = b.x, oy = b.y;
   if (ground) {
     cell.ground = ui::block(parent_, theme::TRACK);
     lv_obj_remove_flag(cell.ground, static_cast<lv_obj_flag_t>(LV_OBJ_FLAG_CLICKABLE | LV_OBJ_FLAG_SCROLLABLE));
-    lv_obj_set_pos(cell.ground, b.x, b.y);
-    lv_obj_set_size(cell.ground, b.w, b.h);
     lv_obj_set_style_pad_all(cell.ground, 0, 0);
     host = cell.ground;
-    ox = oy = 0;
     cell.bar = ui::block(host, theme::TRACK);
     lv_obj_remove_flag(cell.bar, LV_OBJ_FLAG_CLICKABLE);
-    lv_obj_set_pos(cell.bar, pad * 2, b.h - pad - bar_h);
-    lv_obj_set_size(cell.bar, b.w - pad * 4, bar_h);
     lv_obj_set_style_radius(cell.bar, LV_RADIUS_CIRCLE, 0);
   }
-  const int room = b.h - (ground ? pad * 2 + bar_h : 0);
-  const int top = oy + (ground ? pad : 0);
+  cell.icon = place_label(host, Font::ICON_SMALL, theme::MUTED, 0, 0, 1);
+  cell.value = place_label(host, value_font_, theme::INK, 0, 0, 1);
+  cell.name = place_label(host, Font::BODY, theme::MUTED, 0, 0, 1);
+  ui::set_text(cell.icon, ui::icon(ICONS[metric]));
+  ui::set_text(cell.name, plugin_->text(NAME_KEYS[metric]));
+}
+
+// The cells in their area: four, or three without a light sensor, the last row's cells sharing its whole width.
+void PlantTile::place_cells() {
+  const int gap = ui::px(8);
+  const int count = light_shown_ ? METRIC_COUNT : METRIC_COUNT - 1;
+  const int columns = std::min(cells_columns_, count);
+  const int rows = (count + columns - 1) / columns;
+  const int ch = (cells_area_.h - gap * (rows - 1)) / rows;
+  for (int i = 0; i < METRIC_COUNT; ++i) {
+    if (i == LIGHT && !light_shown_) {
+      place_cell(i, {});
+      continue;
+    }
+    const int row = i / columns, column = i % columns;
+    const int in_row = row == rows - 1 ? count - row * columns : columns;
+    const int cw = (cells_area_.w - gap * (in_row - 1)) / in_row;
+    place_cell(i, {cells_area_.x + column * (cw + gap), cells_area_.y + row * (ch + gap), cw, ch});
+  }
+}
+
+static void put(lv_obj_t *label, bool shown, int x, int y, int w, lv_text_align_t align) {
+  if (shown) lv_obj_remove_flag(label, LV_OBJ_FLAG_HIDDEN);
+  else lv_obj_add_flag(label, LV_OBJ_FLAG_HIDDEN);
+  lv_obj_set_pos(label, x, y);
+  lv_obj_set_width(label, std::max(1, w));
+  lv_obj_set_style_text_align(label, align, 0);
+}
+
+// A cell in its box, its parts as far as they fit; an empty box hides it (and keeps taps away: Box::contains).
+void PlantTile::place_cell(int metric, const Box &b) {
+  Cell &cell = cells_[metric];
+  cell.box = b;
+  const bool shown = b.w > 0;
+  const int pad = ui::px(6), bar_h = ui::px(4);
+  const int icon_h = ui::line_height(Font::ICON_SMALL), value_h = ui::line_height(value_font_),
+            name_h = ui::line_height(Font::BODY);
+  int ox = b.x, oy = b.y;
+  if (cell.ground) {
+    if (shown) lv_obj_remove_flag(cell.ground, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(cell.ground, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_set_pos(cell.ground, b.x, b.y);
+    lv_obj_set_size(cell.ground, std::max(1, b.w), std::max(1, b.h));
+    lv_obj_set_pos(cell.bar, pad * 2, b.h - pad - bar_h);
+    lv_obj_set_size(cell.bar, std::max(1, b.w - pad * 4), bar_h);
+    ox = oy = 0;
+  }
+  const int room = b.h - (cell.ground ? pad * 2 + bar_h : 0);
+  const int top = oy + (cell.ground ? pad : 0);
   if (b.w >= ui::px(120)) {
     // Side by side: the icon, then the value with the name under it.
     const bool named = value_h + name_h <= room;
     const int text_h = value_h + (named ? name_h : 0);
     const int y = top + std::max(0, (room - text_h) / 2);
-    cell.icon = place_label(host, Font::ICON_SMALL, theme::MUTED, ox + pad * 2, top + (room - icon_h) / 2, icon_h);
+    put(cell.icon, shown, ox + pad * 2, top + (room - icon_h) / 2, icon_h, LV_TEXT_ALIGN_LEFT);
     const int tx = ox + pad * 3 + icon_h, tw = b.w - (tx - ox) - pad;
-    cell.value = place_label(host, value_font_, theme::INK, tx, y, tw);
-    if (named) cell.name = place_label(host, Font::BODY, theme::MUTED, tx, y + value_h, tw);
+    put(cell.value, shown, tx, y, tw, LV_TEXT_ALIGN_LEFT);
+    put(cell.name, shown && named, tx, y + value_h, tw, LV_TEXT_ALIGN_LEFT);
   } else {
     // Stacked: the icon, the value and the name, each as far as there is room, in the middle.
     const bool iconed = icon_h + value_h <= room, named = icon_h + value_h + name_h <= room;
     const int total = value_h + (iconed ? icon_h : 0) + (named ? name_h : 0);
     int y = top + std::max(0, (room - total) / 2);
-    if (iconed) {
-      cell.icon = place_label(host, Font::ICON_SMALL, theme::MUTED, ox, y, b.w, LV_TEXT_ALIGN_CENTER);
-      y += icon_h;
-    }
-    cell.value = place_label(host, value_font_, theme::INK, ox + pad / 2, y, b.w - pad, LV_TEXT_ALIGN_CENTER);
+    put(cell.icon, shown && iconed, ox, y, b.w, LV_TEXT_ALIGN_CENTER);
+    if (iconed) y += icon_h;
+    put(cell.value, shown, ox + pad / 2, y, b.w - pad, LV_TEXT_ALIGN_CENTER);
     y += value_h;
-    if (named) cell.name = place_label(host, Font::BODY, theme::MUTED, ox, y, b.w, LV_TEXT_ALIGN_CENTER);
+    put(cell.name, shown && named, ox, y, b.w, LV_TEXT_ALIGN_CENTER);
   }
-  if (cell.icon) ui::set_text(cell.icon, ui::icon(ICONS[metric]));
-  if (cell.name) ui::set_text(cell.name, plugin_->text(NAME_KEYS[metric]));
+}
+
+// Whether the plant has a light reading: many have no light sensor, and their tile shows three cells.
+bool PlantTile::has_light() const {
+  if (demo() || *info_entities_[LIGHT] || !std::isnan(attribute_[LIGHT])) return true;
+  // A plant of Plant Monitor is shown with it until it answered, so a tile with a light sensor does not jump.
+  return plant_domain_ && !info_known_;
 }
 
 void PlantTile::on_state(JsonObjectConst data) {
@@ -468,6 +522,7 @@ bool PlantTile::answer(JsonObjectConst m) {
     }
     failures_ = 0;
     last_answer_ = now;
+    info_known_ = true;
     // Home Assistant's answer is {"result": {...}} itself.
     JsonObjectConst info = m["result"]["result"];
     read_info(info.isNull() ? m["result"].as<JsonObjectConst>() : info);
@@ -554,6 +609,10 @@ void PlantTile::paint(uint32_t now) {
   if (name_) ui::set_text(name_, name_text_.empty() ? std::string(plugin_->text("plant")) : roomy::plain(name_text_));
   ui::set_text(mood_label_, plugin_->text(mood_key(mood_)));
   if (watered_label_) ui::set_text(watered_label_, watered_text(now));
+  if (cells_columns_ && has_light() != light_shown_) {
+    light_shown_ = !light_shown_;
+    place_cells();
+  }
   char text[24];
   for (int i = 0; i < METRIC_COUNT; ++i) {
     Cell &cell = cells_[i];

@@ -1,5 +1,8 @@
 # Changelog
 
+## 0.3.1 - 2026-10-14
+- A plant without a light sensor shows three readings instead of an empty light cell.
+
 ## 0.3.0 - 2026-10-14
 - The sensor and range options are gone: choose the plant of Plant Monitor as the tile's entity, and its sensors and
   good ranges come from the plant. Other entities use ranges that suit a leafy houseplant.

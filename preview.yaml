@@ -8,7 +8,7 @@ tiles:
     entity: plant.monstera
     options:
       watered_entity: input_datetime.monstera_watered
-  # Home Assistant's old plant integration: every reading an attribute of one entity, the soil far too wet.
+  # Home Assistant's old plant integration: the readings attributes of one entity, no light sensor, the soil far too wet.
   - tile: plant
     name: Ficus
     entity: plant.ficus
@@ -29,7 +29,7 @@ states:
     attributes: { friendly_name: Monstera, species: Monstera deliciosa, moisture_status: ok }
   plant.ficus:
     state: problem
-    attributes: { friendly_name: Ficus, moisture: 84, temperature: 21.0, brightness: 9000, conductivity: 900 }
+    attributes: { friendly_name: Ficus, moisture: 84, temperature: 21.0, conductivity: 900 }
   sensor.pothos:
     state: "22"
     attributes:
