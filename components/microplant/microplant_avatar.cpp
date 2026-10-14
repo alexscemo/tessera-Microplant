@@ -199,8 +199,7 @@ void PlantAvatar::set_mood(Mood mood) {
 }
 
 void PlantAvatar::place_line(lv_obj_t *line, lv_point_precise_t *points, int count) {
-  lv_line_set_points(line, points, static_cast<uint32_t>(count));
-  lv_obj_invalidate(line);
+  lv_line_set_points(line, points, static_cast<uint32_t>(count));  // it redraws the line itself
 }
 
 void PlantAvatar::apply(const Pose &p) {

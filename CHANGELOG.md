@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.1 - 2026-10-14
+- Fewer redraws: a wide tile no longer draws its "3 days ago" again every second, nor an open card its marker. Lighter
+  on an ESP32-S3, whose panel and drawing share the same PSRAM.
+
 ## 0.6.0 - 2026-10-14
 - A new option, **Sensor battery**: the plant sensor's battery level. At 25 % or less a small red battery shows at the
   plant's top left corner, on every tile size, until the battery is changed.

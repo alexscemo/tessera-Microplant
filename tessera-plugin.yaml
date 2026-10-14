@@ -2,7 +2,7 @@
 # every name, label and hint below is a key into translations/<language>.json, part "app".
 # Every field is explained in docs/MANIFEST.md of the plugins repository.
 id: microplant
-version: 0.6.0
+version: 0.6.1
 # 0.10 for tap_point() (the plant, its watering key and each reading answer a tap of their own), and 0.9 for the green,
 # amber and red of a reading (Tone::GOOD, ui::set_fill). Both are on Tessera's dev branch until its next release.
 api: "0.10"

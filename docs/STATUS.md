@@ -37,6 +37,10 @@
   sensors, the Italian texts on glass.
 - **Report upstream**: the firmware drops a plugin tile's entity of a domain it has no tile for (`plant`), see
   DESIGN.md "Plant Monitor". MicroPlant guesses the id from the plant's name meanwhile; a renamed entity id breaks it.
+- **Suggest upstream, after measuring** (`rendered_frames` on a Guition): for the ESP32-S3 RGB boards only,
+  `CONFIG_COMPILER_OPTIMIZATION_PERF` (-O2) in `packages/hardware/esp32s3-rgb.yaml` (bigger image, more PSRAM traffic);
+  LVGL's S3 SIMD blending (`LV_USE_DRAW_SW_ASM`, needs esp_lvgl_port's asm, ESPHome lacks it);
+  `CONFIG_ESP32S3_DATA_CACHE_64KB` (costs 32 KB of internal RAM the Wi-Fi needs). The rest is already tuned.
 - Plant Monitor's `plant/get_info` answer is taken from its source code (Olen/homeassistant-plant), not from a real
   Home Assistant yet.
 - Starting `tools/preview.py` from Windows loses the backslashes of the path when it hands over to WSL: a bug in the

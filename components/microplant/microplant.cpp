@@ -393,9 +393,15 @@ void PlantTile::place_cells() {
   }
 }
 
+// Only a change touches the object: LVGL redraws it on every add or remove of HIDDEN, as runtime_tiles' set_hidden says.
+static void show(lv_obj_t *o, bool shown) {
+  if (lv_obj_has_flag(o, LV_OBJ_FLAG_HIDDEN) != shown) return;
+  if (shown) lv_obj_remove_flag(o, LV_OBJ_FLAG_HIDDEN);
+  else lv_obj_add_flag(o, LV_OBJ_FLAG_HIDDEN);
+}
+
 static void put(lv_obj_t *label, bool shown, int x, int y, int w, lv_text_align_t align) {
-  if (shown) lv_obj_remove_flag(label, LV_OBJ_FLAG_HIDDEN);
-  else lv_obj_add_flag(label, LV_OBJ_FLAG_HIDDEN);
+  show(label, shown);
   lv_obj_set_pos(label, x, y);
   lv_obj_set_width(label, std::max(1, w));
   lv_obj_set_style_text_align(label, align, 0);
@@ -411,8 +417,7 @@ void PlantTile::place_cell(int metric, const Box &b) {
             name_h = ui::line_height(Font::BODY);
   int ox = b.x, oy = b.y;
   if (cell.ground) {
-    if (shown) lv_obj_remove_flag(cell.ground, LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_add_flag(cell.ground, LV_OBJ_FLAG_HIDDEN);
+    show(cell.ground, shown);
     lv_obj_set_pos(cell.ground, b.x, b.y);
     lv_obj_set_size(cell.ground, std::max(1, b.w), std::max(1, b.h));
     lv_obj_set_pos(cell.bar, pad * 2, b.h - pad - bar_h);
@@ -682,8 +687,7 @@ void PlantTile::paint(uint32_t now) {
   }
   if (battery_icon_) {
     const bool low = !demo() && *battery_entity_ && battery_ <= config::BATTERY_LOW_PERCENT;  // NAN: false
-    if (low) lv_obj_remove_flag(battery_icon_, LV_OBJ_FLAG_HIDDEN);
-    else lv_obj_add_flag(battery_icon_, LV_OBJ_FLAG_HIDDEN);
+    show(battery_icon_, low);
     ui::set_tone(battery_icon_, Tone::ALERT, theme::MUTED);
   }
   if (head_.w > 0) place_head(now);
@@ -708,12 +712,9 @@ void PlantTile::place_head(uint32_t now) {
     right -= iw + ui::px(2);
     lv_obj_set_x(days_icon_, right);
     right -= gap;
-    lv_obj_remove_flag(days_, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_remove_flag(days_icon_, LV_OBJ_FLAG_HIDDEN);
-  } else {
-    lv_obj_add_flag(days_, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(days_icon_, LV_OBJ_FLAG_HIDDEN);
   }
+  show(days_, days != INT32_MIN);
+  show(days_icon_, days != INT32_MIN);
   const char *note = lv_label_get_text(note_);
   if (note && *note) {
     const int nw = ui::text_width(note, Font::BODY) + ui::px(2);
@@ -1022,7 +1023,9 @@ void MetricCard::paint_value() {
                                     : is_high(s) ? HIGH_HINTS[d_.metric]
                                     : s == Status::GOOD ? "hint_good" : "hint_none"));
   const bool known = !std::isnan(d_.value);
-  lv_obj_set_style_opa(marker_, known ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
+  const lv_opa_t opa = known ? LV_OPA_COVER : LV_OPA_TRANSP;
+  // A style set always redraws (on every tick): only when it changes.
+  if (lv_obj_get_style_opa(marker_, LV_PART_MAIN) != opa) lv_obj_set_style_opa(marker_, opa, 0);
   if (known) lv_obj_set_x(marker_, std::clamp(to_x(d_.value) - ui::px(3), 0, width_ - ui::px(6)));
 }
 
