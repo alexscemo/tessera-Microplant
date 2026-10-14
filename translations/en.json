@@ -73,6 +73,8 @@
     "bar_example": "Water Monstera",
     "watered_entity": "Watering helper",
     "watered_entity_hint": "An input_datetime, input_button or button that a tap on the plant sets. Empty: the screen keeps it.",
+    "battery_entity": "Sensor battery",
+    "battery_entity_hint": "The plant sensor's battery level (sensor, %). A small battery shows on the plant at 25 % or less.",
     "setting_demo": "Demo data",
     "setting_demo_hint": "Every plant tile on this screen shows a demo plant whose soil dries out in minutes.",
     "setting_poll": "Ask every",

@@ -8,6 +8,7 @@ tiles:
     entity: plant.monstera
     options:
       watered_entity: input_datetime.monstera_watered
+      battery_entity: sensor.monstera_battery
   # Home Assistant's old plant integration: the readings attributes of one entity, no light sensor, the soil far too wet.
   - tile: plant
     name: Ficus
@@ -42,9 +43,10 @@ states:
       watered_at: "{epoch-6d}"
 
 commands:
-  # The tile's poll of its watering helper: its state at the start of the last minute.
+  # The tile's poll of its watering helper and its sensor's battery (low): their states at the start of the last minute.
   "history/history_during_period":
     input_datetime.monstera_watered: [{ s: "2026-10-11 08:30:00", a: { timestamp: 1791703800 }, lu: 1791703800 }]
+    sensor.monstera_battery: [{ s: "18", a: { unit_of_measurement: "%" }, lu: 1791703800 }]
   # Plant Monitor's plant: Home Assistant's answer, {"result": {...}}.
   "plant/get_info":
     result:

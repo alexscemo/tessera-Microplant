@@ -2,7 +2,7 @@
 # every name, label and hint below is a key into translations/<language>.json, part "app".
 # Every field is explained in docs/MANIFEST.md of the plugins repository.
 id: microplant
-version: 0.5.0
+version: 0.6.0
 # 0.10 for tap_point() (the plant, its watering key and each reading answer a tap of their own), and 0.9 for the green,
 # amber and red of a reading (Tone::GOOD, ui::set_fill). Both are on Tessera's dev branch until its next release.
 api: "0.10"
@@ -17,7 +17,7 @@ boards: any
 flash_kb: 26
 
 permissions:
-  # The tile asks for the current state of its watering helper (a minute of its history), every
+  # The tile asks for the current state of its watering helper and its sensor's battery (a minute of their history), every
   # "Plant poll seconds" (a plant of Plant Monitor: its sensors, values and ranges); a reading's card asks for the hourly
   # means of its last 24 hours.
   ha_commands: ["history/history_during_period", "recorder/statistics_during_period", "plant/get_info"]
@@ -33,7 +33,7 @@ answers:
 tiles:
   # The plant and its four readings. It belongs to one entity, chosen in the editor: the soil moisture sensor, a plant
   # of Plant Monitor (its sensors and good ranges come from the plant itself), or a template sensor with the readings
-  # as attributes. The one option is the watering helper.
+  # as attributes. Its options are the watering helper and the plant sensor's battery.
   - id: plant
     name: tile_name
     icon: sprout
@@ -50,6 +50,7 @@ tiles:
     preview: { title: "{name}", value: "{state}" }
     options:
       - { id: watered_entity, kind: text, label: watered_entity, hint: watered_entity_hint }
+      - { id: battery_entity, kind: text, label: battery_entity, hint: battery_entity_hint }
 
 cards:
   # One reading of the plant: its value, where it stands in its range, what to do, and its last 24 hours.

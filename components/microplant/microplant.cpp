@@ -18,6 +18,7 @@ namespace ui = tessera::ui;
 // Icons of Tessera's set (screen_manager/app/tile_icons.py): water, thermometer, water-percent, weather-sunny.
 static constexpr uint32_t ICONS[METRIC_COUNT] = {0xF058C, 0xF050F, 0xF058E, 0xF0599};
 static constexpr uint32_t ICON_WATER = 0xF058C;
+static constexpr uint32_t ICON_BATTERY_LOW = 0xF0083;  // battery-alert, of Home Assistant's defaults in the set
 // Keys of translations/<language>.json, part "screen".
 static const char *const NAME_KEYS[METRIC_COUNT] = {"soil", "temperature", "humidity", "light"};
 static const char *const TITLE_KEYS[METRIC_COUNT] = {"soil_title", "temperature_title", "humidity_title", "light_title"};
@@ -158,12 +159,14 @@ class PlantTile : public tessera::Tile {
   int worst_metric() const;
   std::string plant_name() const;
   void place_head(uint32_t now);
+  void place_plant(int x, int y, int size);
 
   Microplant *plugin_;
   lv_obj_t *parent_{};
   int width_ = 0, height_ = 0, tile_ = -1;
   tessera::Text entity_, name_text_, entity_name_;
   char watered_entity_[64] = "";
+  char battery_entity_[64] = "";  // the plant sensor's battery (option), its mark shows when it is low
   Range ranges_[METRIC_COUNT]{DEFAULT_RANGES[0], DEFAULT_RANGES[1], DEFAULT_RANGES[2], DEFAULT_RANGES[3]};
   bool plant_domain_ = false;
   // Plant Monitor (plant/get_info): the sensor of each reading, its value and its range from the plant's own settings.
@@ -176,6 +179,7 @@ class PlantTile : public tessera::Tile {
   float state_value_ = NAN;             // the tile entity's state as a number
   float attribute_[METRIC_COUNT]{NAN, NAN, NAN, NAN};
   bool light_percent_ = false, fahrenheit_ = false;
+  float battery_ = NAN;                 // percent, polled
   uint32_t watered_attribute_ = 0, watered_polled_ = 0, watered_here_ = 0, thanks_until_ = 0;
   uint32_t asked_ = 0, info_asked_ = 0, next_ask_ = 0, last_answer_ = 0, first_ask_ = 0;
   uint8_t failures_ = 0;
@@ -189,6 +193,7 @@ class PlantTile : public tessera::Tile {
   lv_obj_t *name_{}, *mood_label_{}, *watered_label_{}, *note_{}, *worst_{};
   lv_obj_t *days_{}, *days_icon_{};  // a wide tile's "3 days ago" with a drop, at the top right
   lv_obj_t *key_{}, *key_icon_{}, *key_label_{};
+  lv_obj_t *battery_icon_{};  // a small battery mark at the plant's top left corner
   Box key_box_;
   Box head_;  // a wide tile's top line: the plant's name, then its mood
   Cell cells_[METRIC_COUNT];
@@ -209,6 +214,7 @@ void PlantTile::create(const tessera::TileContext &c) {
   name_text_ = c.name && *c.name ? c.name : "";
   plant_domain_ = starts_with(entity_.c_str(), "plant.");
   snprintf(watered_entity_, sizeof(watered_entity_), "%s", c.options["watered_entity"] | "");
+  snprintf(battery_entity_, sizeof(battery_entity_), "%s", c.options["battery_entity"] | "");
 
   // The shape of the tile picks its layout: a page of its own, wide, tall, or one cell.
   const bool wide = width_ >= ui::px(300), high = height_ >= ui::px(240);
@@ -225,7 +231,7 @@ void PlantTile::layout_full() {
   const int cells_h = std::clamp(height_ * 34 / 100, ui::px(88), ui::px(132));
   const int top_h = height_ - cells_h - gap;
   const int a = std::min(top_h, width_ * 46 / 100);
-  avatar_.create(parent_, 0, (top_h - a) / 2, a);
+  place_plant(0, (top_h - a) / 2, a);
   const int x = a + gap, tw = width_ - x;
   // The watering key at the foot of the column, the words above it.
   const int kh = std::max(ui::mm(9), ui::line_height(Font::BODY_LARGE) + ui::px(18));
@@ -249,7 +255,7 @@ void PlantTile::layout_full() {
 void PlantTile::layout_wide() {
   const int gap = ui::px(8);
   const int a = std::min(height_, width_ * 32 / 100);
-  avatar_.create(parent_, 0, (height_ - a) / 2, a);
+  place_plant(0, (height_ - a) / 2, a);
   const int x = a + gap, tw = width_ - x;
   const int line = ui::line_height(Font::TITLE), body = ui::line_height(Font::BODY);
   const int icon = ui::line_height(Font::ICON_SMALL);
@@ -270,7 +276,7 @@ void PlantTile::layout_wide() {
 // Narrow and tall (1x2, 1x3): the plant on top, its mood and watering under it, the cells two by two.
 void PlantTile::layout_tall() {
   const int a = std::min(width_, height_ * 44 / 100);
-  avatar_.create(parent_, (width_ - a) / 2, 0, a);
+  place_plant((width_ - a) / 2, 0, a);
   int y = a + ui::px(2);
   mood_label_ = place_label(parent_, Font::TITLE, theme::INK, 0, y, width_, LV_TEXT_ALIGN_CENTER);
   y += ui::line_height(Font::TITLE);
@@ -282,7 +288,7 @@ void PlantTile::layout_tall() {
 // One cell (1x1): the plant, its mood, and the reading that matters most.
 void PlantTile::layout_small() {
   const int a = std::min(height_, width_ * 48 / 100);
-  avatar_.create(parent_, 0, (height_ - a) / 2, a);
+  place_plant(0, (height_ - a) / 2, a);
   const int x = a + ui::px(6), tw = width_ - x;
   const int lines = ui::line_height(Font::TITLE) + ui::line_height(Font::BODY) * 2;
   int y = std::max(0, (height_ - lines) / 2);
@@ -292,6 +298,15 @@ void PlantTile::layout_small() {
   y += ui::line_height(Font::BODY);
   if (y + ui::line_height(Font::BODY) <= height_)
     watered_label_ = place_label(parent_, Font::BODY, theme::MUTED, x, y, tw);
+}
+
+// The plant in a square of `size` at (x, y), with the battery mark (hidden until the battery is low) at its corner.
+void PlantTile::place_plant(int x, int y, int size) {
+  avatar_.create(parent_, x, y, size);
+  const int icon = ui::line_height(Font::ICON_SMALL);
+  battery_icon_ = place_label(parent_, Font::ICON_SMALL, theme::MUTED, x, y, icon);
+  ui::set_text(battery_icon_, ui::icon(ICON_BATTERY_LOW));
+  lv_obj_add_flag(battery_icon_, LV_OBJ_FLAG_HIDDEN);
 }
 
 void PlantTile::make_water_key(const Box &b) {
@@ -463,7 +478,7 @@ void PlantTile::on_state(JsonObjectConst data) {
   paint(now);
 }
 
-bool PlantTile::polls() const { return plant_domain_ || *watered_entity_; }
+bool PlantTile::polls() const { return plant_domain_ || *watered_entity_ || *battery_entity_; }
 
 // Ask Home Assistant, through the app: a plant of Plant Monitor for its readings, the watering helper for its moment.
 void PlantTile::ask(uint32_t now) {
@@ -477,14 +492,16 @@ void PlantTile::ask(uint32_t now) {
     info_asked_ = tessera::send(plugin_, request.as<JsonObjectConst>());
     if (!info_asked_) next_ask_ = now + config::RETRY_SECONDS;
   }
-  if (!*watered_entity_) return;
+  if (!*watered_entity_ && !*battery_entity_) return;
   char start[32];
   iso_utc(now - config::POLL_WINDOW_SECONDS, start, sizeof(start));
   JsonDocument request;
   request["ask"] = "history/history_during_period";
   JsonObject data = request["data"].to<JsonObject>();
   data["start_time"] = start;
-  data["entity_ids"].to<JsonArray>().add(watered_entity_);
+  JsonArray ids = data["entity_ids"].to<JsonArray>();
+  if (*watered_entity_) ids.add(watered_entity_);
+  if (*battery_entity_) ids.add(battery_entity_);
   data["include_start_time_state"] = true;
   data["significant_changes_only"] = false;
   data["minimal_response"] = true;   // the attributes only with the first state of each
@@ -556,6 +573,11 @@ bool PlantTile::answer(JsonObjectConst m) {
       if (rows.size() == 1 && !std::isnan(ts) && ts > 0) at = static_cast<uint32_t>(ts);
       if (at) watered_polled_ = at;
     }
+  }
+  if (*battery_entity_) {
+    // The last row is the battery now; "unavailable" reads as no number and hides the mark.
+    JsonArrayConst rows = m["result"][battery_entity_];
+    if (rows.size()) battery_ = number_of(rows[rows.size() - 1]["s"]);
   }
   read_values(now);
   paint(now);
@@ -657,6 +679,12 @@ void PlantTile::paint(uint32_t now) {
     const char *key = demo() ? (chosen_ || !roomy_note_ ? "demo" : "demo_choose") : offline ? "offline" : "";
     ui::set_text(note_, *key ? plugin_->text(key) : "");
     ui::set_tone(note_, demo() ? Tone::ACCENT : Tone::ALERT, theme::MUTED);
+  }
+  if (battery_icon_) {
+    const bool low = !demo() && *battery_entity_ && battery_ <= config::BATTERY_LOW_PERCENT;  // NAN: false
+    if (low) lv_obj_remove_flag(battery_icon_, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(battery_icon_, LV_OBJ_FLAG_HIDDEN);
+    ui::set_tone(battery_icon_, Tone::ALERT, theme::MUTED);
   }
   if (head_.w > 0) place_head(now);
 }

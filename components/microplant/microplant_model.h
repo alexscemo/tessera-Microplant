@@ -39,6 +39,8 @@ constexpr uint32_t THANKS_SECONDS = 10;
 constexpr int HISTORY_HOURS = 24;
 // A temperature attribute above this is in degrees Fahrenheit (see celsius_of_attribute).
 constexpr float FAHRENHEIT_ABOVE = 45.0f;
+// A plant sensor's battery at or below this (percent) shows a small battery mark on the plant: change it soon.
+constexpr float BATTERY_LOW_PERCENT = 25.0f;
 
 // Demo data: the soil starts full and drains one point every few seconds after a watering, so a person sees every mood
 // within minutes; the air and the light wander on a cycle of ten minutes.

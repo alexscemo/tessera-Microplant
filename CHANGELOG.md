@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.0 - 2026-10-14
+- A new option, **Sensor battery**: the plant sensor's battery level. At 25 % or less a small red battery shows at the
+  plant's top left corner, on every tile size, until the battery is changed.
+
 ## 0.5.0 - 2026-10-14
 - A wide tile (2x1, 2x2) shows the days since the last watering at its top right, with a water drop: "3 days ago".
   Nothing shows there before the first watering. The 2x2 tile's "Watered ..." line gave way to it.

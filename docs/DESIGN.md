@@ -89,6 +89,10 @@ MetricCard::open ──▶ tessera::send(recorder/statistics_during_period, 24 h
 Without a light reading (`has_light()`: Plant Monitor answered without one, or no light attribute) the light cell is hidden and `place_cells()` spreads the other three, the last row's cells sharing its width. Cells adapt: ground block + bar when ≥ 40 px high; side-by-side icon/value/name when ≥ 120 px wide, stacked otherwise;
 one value font for all four (largest where `"88.8°C"` fits).
 
+**Sensor battery** (option `battery_entity`): polled with the watering helper in the same history ask; at or below
+`config::BATTERY_LOW_PERCENT` (25) a small `battery-alert` icon in ALERT shows at the plant's top left corner
+(`place_plant()`, every layout). Hidden in demo, without the option, or while the state is not a number.
+
 ## Taps
 
 `tap_point()` → Watered key or plant (with margin) = **water**; a cell = open its card; elsewhere or unknown point =
