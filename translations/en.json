@@ -1,6 +1,7 @@
 {
   "_meta": { "name": "English" },
   "screen": {
+    "days_ago": "{n} day ago | {n} days ago",
     "tile_default": "Plant",
     "plant": "My plant",
     "soil": "Soil",

@@ -157,6 +157,7 @@ class PlantTile : public tessera::Tile {
   void open_detail(int metric);
   int worst_metric() const;
   std::string plant_name() const;
+  void place_head(uint32_t now);
 
   Microplant *plugin_;
   lv_obj_t *parent_{};
@@ -186,6 +187,7 @@ class PlantTile : public tessera::Tile {
 
   PlantAvatar avatar_;
   lv_obj_t *name_{}, *mood_label_{}, *watered_label_{}, *note_{}, *worst_{};
+  lv_obj_t *days_{}, *days_icon_{};  // a wide tile's "3 days ago" with a drop, at the top right
   lv_obj_t *key_{}, *key_icon_{}, *key_label_{};
   Box key_box_;
   Box head_;  // a wide tile's top line: the plant's name, then its mood
@@ -249,19 +251,17 @@ void PlantTile::layout_wide() {
   const int a = std::min(height_, width_ * 32 / 100);
   avatar_.create(parent_, 0, (height_ - a) / 2, a);
   const int x = a + gap, tw = width_ - x;
-  const int note_w = std::max(ui::text_width(plugin_->text("demo"), Font::BODY),
-                              ui::text_width(plugin_->text("offline"), Font::BODY)) + ui::px(4);
-  head_ = {x, 0, tw - note_w - ui::px(6), ui::line_height(Font::TITLE)};
-  name_ = place_label(parent_, Font::TITLE, theme::INK, x, 0, head_.w);
-  mood_label_ = place_label(parent_, Font::TITLE, theme::MUTED, x, 0, head_.w);
-  note_ = place_label(parent_, Font::BODY, theme::MUTED, width_ - note_w,
-                      (ui::line_height(Font::TITLE) - ui::line_height(Font::BODY)) / 2, note_w, LV_TEXT_ALIGN_RIGHT);
-  int y = ui::line_height(Font::TITLE);
-  if (height_ >= ui::px(150)) {
-    watered_label_ = place_label(parent_, Font::BODY, theme::MUTED, x, y, tw);
-    y += ui::line_height(Font::BODY);
-  }
-  y += ui::px(6);
+  const int line = ui::line_height(Font::TITLE), body = ui::line_height(Font::BODY);
+  const int icon = ui::line_height(Font::ICON_SMALL);
+  // The top line: the name, the mood, a note, and the days since the watering at the right (placed by place_head).
+  head_ = {x, 0, tw, line};
+  name_ = place_label(parent_, Font::TITLE, theme::INK, x, 0, tw);
+  mood_label_ = place_label(parent_, Font::TITLE, theme::MUTED, x, 0, tw);
+  note_ = place_label(parent_, Font::BODY, theme::MUTED, x, (line - body) / 2, 1, LV_TEXT_ALIGN_RIGHT);
+  days_icon_ = place_label(parent_, Font::ICON_SMALL, theme::MUTED, x, (line - icon) / 2, icon);
+  ui::set_text(days_icon_, ui::icon(ICON_WATER));
+  days_ = place_label(parent_, Font::BODY, theme::MUTED, x, (line - body) / 2, 1, LV_TEXT_ALIGN_RIGHT);
+  const int y = line + ui::px(6);
   const int area_h = height_ - y;
   // Two rows of two where they fit, else one row of four.
   make_cells({x, y, tw, area_h}, area_h >= ui::px(104) ? 2 : 4);
@@ -622,14 +622,6 @@ void PlantTile::paint(uint32_t now) {
   if (name_) {
     const std::string name = plant_name();
     ui::set_text(name_, name);
-    if (head_.w > 0) {
-      // The name as wide as it is (at most two thirds of the line), the mood in the rest.
-      const int gap = ui::px(8);
-      const int nw = std::min(ui::text_width(name.c_str(), Font::TITLE) + ui::px(2), head_.w * 2 / 3);
-      lv_obj_set_width(name_, nw);
-      lv_obj_set_pos(mood_label_, head_.x + nw + gap, head_.y);
-      lv_obj_set_width(mood_label_, std::max(1, head_.w - nw - gap));
-    }
   }
   ui::set_text(mood_label_, plugin_->text(mood_key(mood_)));
   if (watered_label_) ui::set_text(watered_label_, watered_text(now));
@@ -666,6 +658,47 @@ void PlantTile::paint(uint32_t now) {
     ui::set_text(note_, *key ? plugin_->text(key) : "");
     ui::set_tone(note_, demo() ? Tone::ACCENT : Tone::ALERT, theme::MUTED);
   }
+  if (head_.w > 0) place_head(now);
+}
+
+// A wide tile's top line, from the right: "3 days ago" with a drop before it (none before the first watering), the
+// note (Demo, Offline) when there is one, then the name as wide as it is (at most two thirds of what is left) and the
+// mood in the rest.
+void PlantTile::place_head(uint32_t now) {
+  const int gap = ui::px(8);
+  int right = head_.x + head_.w;
+  const uint32_t at = watered(now);
+  const int32_t days = at ? tessera::days_from_today(at) : INT32_MIN;
+  if (days != INT32_MIN) {
+    const std::string text = tessera::format(plugin_->text("days_ago"), days < 0 ? -days : 0);
+    ui::set_text(days_, text);
+    const int dw = ui::text_width(text.c_str(), Font::BODY) + ui::px(2);
+    right -= dw;
+    lv_obj_set_x(days_, right);
+    lv_obj_set_width(days_, dw);
+    const int iw = lv_obj_get_width(days_icon_);
+    right -= iw + ui::px(2);
+    lv_obj_set_x(days_icon_, right);
+    right -= gap;
+    lv_obj_remove_flag(days_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_remove_flag(days_icon_, LV_OBJ_FLAG_HIDDEN);
+  } else {
+    lv_obj_add_flag(days_, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(days_icon_, LV_OBJ_FLAG_HIDDEN);
+  }
+  const char *note = lv_label_get_text(note_);
+  if (note && *note) {
+    const int nw = ui::text_width(note, Font::BODY) + ui::px(2);
+    right -= nw;
+    lv_obj_set_x(note_, right);
+    lv_obj_set_width(note_, nw);
+    right -= gap;
+  }
+  const int room = std::max(1, right - head_.x);
+  const int nw = std::min(ui::text_width(lv_label_get_text(name_), Font::TITLE) + ui::px(2), room * 2 / 3);
+  lv_obj_set_width(name_, std::max(1, nw));
+  lv_obj_set_x(mood_label_, head_.x + nw + gap);
+  lv_obj_set_width(mood_label_, std::max(1, room - nw - gap));
 }
 
 void PlantTile::on_tick(uint32_t epoch) {
@@ -686,6 +719,8 @@ void PlantTile::on_theme() {
   if (name_) ui::set_color(name_, head_.w > 0 ? theme::INK : theme::MUTED);
   if (mood_label_) ui::set_color(mood_label_, head_.w > 0 ? theme::MUTED : theme::INK);
   if (watered_label_) ui::set_color(watered_label_, theme::MUTED);
+  if (days_) ui::set_color(days_, theme::MUTED);
+  if (days_icon_) ui::set_color(days_icon_, theme::MUTED);
   if (key_icon_) ui::set_color(key_icon_, theme::ON_ACCENT);
   if (key_label_) ui::set_color(key_label_, theme::ON_ACCENT);
   if (key_) lv_obj_set_style_bg_color(key_, ui::color(theme::ACCENT), 0);

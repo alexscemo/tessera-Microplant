@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0 - 2026-10-14
+- A wide tile (2x1, 2x2) shows the days since the last watering at its top right, with a water drop: "3 days ago".
+  Nothing shows there before the first watering. The 2x2 tile's "Watered ..." line gave way to it.
+
 ## 0.4.0 - 2026-10-14
 - The plant's name stands first on the top line of a wide tile (2x1, 2x2), its mood after it. It is the tile's name
   from the editor, or the plant's own name in Home Assistant while the tile keeps its default name.
