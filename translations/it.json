@@ -1,6 +1,7 @@
 {
   "_meta": { "name": "Italiano" },
   "screen": {
+    "tile_default": "Pianta",
     "plant": "La mia pianta",
     "soil": "Terra",
     "temperature": "Temp",

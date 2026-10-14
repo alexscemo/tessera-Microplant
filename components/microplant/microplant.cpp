@@ -156,11 +156,12 @@ class PlantTile : public tessera::Tile {
   void water(uint32_t now);
   void open_detail(int metric);
   int worst_metric() const;
+  std::string plant_name() const;
 
   Microplant *plugin_;
   lv_obj_t *parent_{};
   int width_ = 0, height_ = 0, tile_ = -1;
-  tessera::Text entity_, name_text_;
+  tessera::Text entity_, name_text_, entity_name_;
   char watered_entity_[64] = "";
   Range ranges_[METRIC_COUNT]{DEFAULT_RANGES[0], DEFAULT_RANGES[1], DEFAULT_RANGES[2], DEFAULT_RANGES[3]};
   bool plant_domain_ = false;
@@ -187,6 +188,7 @@ class PlantTile : public tessera::Tile {
   lv_obj_t *name_{}, *mood_label_{}, *watered_label_{}, *note_{}, *worst_{};
   lv_obj_t *key_{}, *key_icon_{}, *key_label_{};
   Box key_box_;
+  Box head_;  // a wide tile's top line: the plant's name, then its mood
   Cell cells_[METRIC_COUNT];
   Box cells_area_;
   int cells_columns_ = 0;
@@ -249,7 +251,9 @@ void PlantTile::layout_wide() {
   const int x = a + gap, tw = width_ - x;
   const int note_w = std::max(ui::text_width(plugin_->text("demo"), Font::BODY),
                               ui::text_width(plugin_->text("offline"), Font::BODY)) + ui::px(4);
-  mood_label_ = place_label(parent_, Font::TITLE, theme::INK, x, 0, tw - note_w - ui::px(6));
+  head_ = {x, 0, tw - note_w - ui::px(6), ui::line_height(Font::TITLE)};
+  name_ = place_label(parent_, Font::TITLE, theme::INK, x, 0, head_.w);
+  mood_label_ = place_label(parent_, Font::TITLE, theme::MUTED, x, 0, head_.w);
   note_ = place_label(parent_, Font::BODY, theme::MUTED, width_ - note_w,
                       (ui::line_height(Font::TITLE) - ui::line_height(Font::BODY)) / 2, note_w, LV_TEXT_ALIGN_RIGHT);
   int y = ui::line_height(Font::TITLE);
@@ -435,6 +439,7 @@ void PlantTile::on_state(JsonObjectConst data) {
   JsonVariantConst state = data["state"];
   chosen_ = !state.isNull();
   state_value_ = plant_domain_ ? NAN : number_of(state);
+  entity_name_ = data["name"] | "";
   JsonObjectConst attrs = data["attributes"];
   // Tessera's firmware keeps a plugin tile's entity only of a domain it has tiles for, so a plant comes without its id:
   // a plant of Plant Monitor (it has a species, maybe "") is found by its name instead.
@@ -597,6 +602,14 @@ std::string PlantTile::watered_text(uint32_t now) const {
   return tessera::format(plugin_->text("watered_days"), -days);
 }
 
+// The tile's name from the editor, unless it is still the tile's default; else the plant's own name in Home Assistant.
+std::string PlantTile::plant_name() const {
+  const std::string own = roomy::plain(name_text_);
+  if (!own.empty() && own != plugin_->text("tile_default")) return own;
+  if (!entity_name_.empty()) return roomy::plain(entity_name_);
+  return own.empty() ? std::string(plugin_->text("plant")) : own;
+}
+
 int PlantTile::worst_metric() const {
   int worst = MOISTURE;
   for (int i = 0; i < METRIC_COUNT; ++i)
@@ -606,7 +619,18 @@ int PlantTile::worst_metric() const {
 
 void PlantTile::paint(uint32_t now) {
   avatar_.set_mood(mood_);
-  if (name_) ui::set_text(name_, name_text_.empty() ? std::string(plugin_->text("plant")) : roomy::plain(name_text_));
+  if (name_) {
+    const std::string name = plant_name();
+    ui::set_text(name_, name);
+    if (head_.w > 0) {
+      // The name as wide as it is (at most two thirds of the line), the mood in the rest.
+      const int gap = ui::px(8);
+      const int nw = std::min(ui::text_width(name.c_str(), Font::TITLE) + ui::px(2), head_.w * 2 / 3);
+      lv_obj_set_width(name_, nw);
+      lv_obj_set_pos(mood_label_, head_.x + nw + gap, head_.y);
+      lv_obj_set_width(mood_label_, std::max(1, head_.w - nw - gap));
+    }
+  }
   ui::set_text(mood_label_, plugin_->text(mood_key(mood_)));
   if (watered_label_) ui::set_text(watered_label_, watered_text(now));
   if (cells_columns_ && has_light() != light_shown_) {
@@ -658,8 +682,9 @@ void PlantTile::on_tick(uint32_t epoch) {
 
 void PlantTile::on_theme() {
   avatar_.on_theme();
-  if (name_) ui::set_color(name_, theme::MUTED);
-  if (mood_label_) ui::set_color(mood_label_, theme::INK);
+  // A wide tile's top line names the plant and says its mood more softly; a page-size tile the other way round.
+  if (name_) ui::set_color(name_, head_.w > 0 ? theme::INK : theme::MUTED);
+  if (mood_label_) ui::set_color(mood_label_, head_.w > 0 ? theme::MUTED : theme::INK);
   if (watered_label_) ui::set_color(watered_label_, theme::MUTED);
   if (key_icon_) ui::set_color(key_icon_, theme::ON_ACCENT);
   if (key_label_) ui::set_color(key_label_, theme::ON_ACCENT);

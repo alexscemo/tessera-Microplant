@@ -1,6 +1,7 @@
 {
   "_meta": { "name": "English" },
   "screen": {
+    "tile_default": "Plant",
     "plant": "My plant",
     "soil": "Soil",
     "temperature": "Temp",

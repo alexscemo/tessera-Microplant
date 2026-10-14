@@ -82,7 +82,7 @@ MetricCard::open ──▶ tessera::send(recorder/statistics_during_period, 24 h
 | Mode | When | Content |
 |---|---|---|
 | full | w ≥ 300 px & h ≥ 240 px (2x2, 2x3) | plant left, name/mood/watered/note right, **Watered key**, 4 cells in a row under |
-| wide | w ≥ 300, low (2x1) | plant left, mood + note, cells 4 in a row (or 2x2 when ≥ 104 px) |
+| wide | w ≥ 300, low (2x1) | plant left, name then mood on one line (`head_`; `plant_name()`: the editor's name unless it is the default `tile_default`, else the entity's friendly name) + note, cells 4 in a row (or 2x2 when ≥ 104 px) |
 | tall | narrow, h ≥ 200 (1x2, 1x3) | plant top, mood, watered, cells 2x2 |
 | small | 1x1 | plant, mood, worst reading, watered |
 

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.0 - 2026-10-14
+- The plant's name stands first on the top line of a wide tile (2x1, 2x2), its mood after it. It is the tile's name
+  from the editor, or the plant's own name in Home Assistant while the tile keeps its default name.
+
 ## 0.3.1 - 2026-10-14
 - A plant without a light sensor shows three readings instead of an empty light cell.
 
