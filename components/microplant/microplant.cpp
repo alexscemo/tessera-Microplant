@@ -91,6 +91,13 @@ static float number_of(JsonVariantConst v) {
 
 static bool starts_with(const char *text, const char *prefix) { return strncmp(text, prefix, strlen(prefix)) == 0; }
 
+// The rows of one entity in a history answer. The app cuts an answer's keys to 32 bytes, and many entity ids are longer.
+static JsonArrayConst rows_of(JsonObjectConst result, const char *entity) {
+  for (JsonPairConst p : result)
+    if (strncmp(p.key().c_str(), entity, 32) == 0) return p.value();
+  return {};
+}
+
 // A place on the tile, to lay out and to tell where a finger was.
 struct Box {
   int x = 0, y = 0, w = 0, h = 0;
@@ -569,7 +576,7 @@ bool PlantTile::answer(JsonObjectConst m) {
   failures_ = 0;
   last_answer_ = now;
   if (*watered_entity_) {
-    JsonArrayConst rows = m["result"][watered_entity_];
+    JsonArrayConst rows = rows_of(m["result"], watered_entity_);
     if (rows.size()) {
       // An input_button's state is the moment it was pressed; an input_datetime's is a local time, with the moment in
       // its attribute `timestamp` (of the first row: the last row's own when it changed within the minute asked).
@@ -581,7 +588,7 @@ bool PlantTile::answer(JsonObjectConst m) {
   }
   if (*battery_entity_) {
     // The last row is the battery now; "unavailable" reads as no number and hides the mark.
-    JsonArrayConst rows = m["result"][battery_entity_];
+    JsonArrayConst rows = rows_of(m["result"], battery_entity_);
     if (rows.size()) battery_ = number_of(rows[rows.size() - 1]["s"]);
   }
   read_values(now);

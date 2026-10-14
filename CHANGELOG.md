@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.6.2 - 2026-10-14
+- The battery mark and the watering helper work with an entity id longer than 32 characters (most battery sensors
+  have one): the app shortens the names in its answers, and the tile looked for the whole id.
+
 ## 0.6.1 - 2026-10-14
 - Fewer redraws: a wide tile no longer draws its "3 days ago" again every second, nor an open card its marker. Lighter
   on an ESP32-S3, whose panel and drawing share the same PSRAM.
