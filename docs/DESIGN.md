@@ -12,7 +12,7 @@ Tessera's rules forced these changes (all deliberate; do not "fix" them back):
 | Brief | What we did | Why |
 |---|---|---|
 | HTTP GET of a local API / HA REST from the screen | The tile's entity is **pushed** by Tessera; the other sensors are **polled through the app** with `tessera::send` → websocket `history/history_during_period` every *Plant poll seconds* (default 60, 30–300). A local JSON API becomes a HA `rest:` sensor (README has the YAML) | The screen may never open a connection (`http_request` is refused by `check.py`), and an app `fetch` reaches only public hosts named in `permissions.network`, never a LAN address |
-| Config variables for URLs/entities at the top of the C++ | Entities and ranges are **tile options** (editor); poll interval and demo are **ESPHome entities** (settings); fixed constants are in `namespace config` at the top of `microplant_model.h` | Tessera: values a person changes are options or settings, never globals in code |
+| Config variables for URLs/entities at the top of the C++ | The plant's sensors and ranges come from **Plant Monitor** (0.3.0 removed the 3 sensor and 8 range options: too error-prone to type; the user chose this); the watering helper is the one **tile option**; poll interval and demo are **ESPHome entities** (settings); fixed constants are in `namespace config` at the top of `microplant_model.h` | Tessera: values a person changes are options or settings, never globals in code |
 | Detail modal with buttons | A read-only **wide card** (`metric`): value, ruler, hint, 24 h chart | Cards get no taps in the plugin API; the Watered key therefore lives on the tile |
 | Distinct tap targets | `tessera::tap_point()` hit-testing in `PlantTile::on_tap()` | No LVGL click handlers allowed; `tap_point` is API 0.10 |
 | Green/amber/red | `Tone::GOOD/BUSY/ALERT` with `ui::set_fill` / `ui::set_tone` | Theme roles only; GOOD and set_fill are API 0.9 |
@@ -26,19 +26,19 @@ no `tessera::Text/List`.
 
 ```
 Home Assistant ──push (entity changes)──▶ app ──▶ PlantTile::on_state   (tile entity: state + attributes)
-PlantTile::on_tick ──every poll_seconds──▶ tessera::send(history/history_during_period, entity_ids[...])
-                 app ──▶ Microplant::on_message ──▶ PlantTile::answer (matches "re")   (polled sensors, watering helper)
+PlantTile::on_tick ──every poll_seconds──▶ tessera::send(plant/get_info) and/or (history/history_during_period, [helper])
+                 app ──▶ Microplant::on_message ──▶ PlantTile::answer (matches "re")   (Plant Monitor, watering helper)
 MetricCard::open ──▶ tessera::send(recorder/statistics_during_period, 24 h, hourly mean)
                  app maps it via manifest `answers` → {"means":[...]} ──▶ MetricCard::answer
 ```
 
 - **Plant Monitor** (`plant.*` tile entity): every poll also sends `plant/get_info` (Olen's integration), whose answer
   `{"result": {"moisture": {"current", "min", "max", "sensor", "unit_of_measurement"}, "temperature", "illuminance",
-  "humidity", ...}}` gives the value, the range (it replaces the options' range) and the sensor (for the card's history).
+  "humidity", ...}}` gives the value, the range (else `DEFAULT_RANGES`) and the sensor (for the card's history).
   Tessera's firmware (main and dev, 2026-10-14) drops a plugin tile's entity whose domain has no Tessera tile
   (`valid_entity` in `page_receiver.cpp`), so `context.entity` is "" for a `plant.*`. Until that is fixed upstream the
   tile spots a Plant Monitor plant by its `species` attribute and guesses `plant.<slug of its name>` (`plant_entity_of`).
-- **Sources per reading** (`PlantTile::read_values`): demo → option sensor (polled) → Plant Monitor → attribute of the tile entity
+- **Sources per reading** (`PlantTile::read_values`): demo → Plant Monitor → attribute of the tile entity
   (`moisture`, `temperature`, `humidity`, `brightness` or `illuminance`) → for soil, the entity's own state.
 - **Tile entity domains:** `sensor` (a soil sensor, or a template/REST sensor with attributes) or `plant` (HA Plant
   Monitor; its state is ok/problem, so the state is never read as moisture).

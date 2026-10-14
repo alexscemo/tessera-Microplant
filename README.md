@@ -33,19 +33,16 @@ Made for the 4-inch square screens (480 x 480), and drawn for every size from on
    to your screen; the screen builds once.
 2. In **Layout**, place the **Plant** tile from the library's Plugins group. Until you choose an entity it shows a demo
    plant whose soil dries out in minutes, so you can try the moods and the watering at once.
-3. In the inspector, choose the tile's **entity**: your plant's soil moisture sensor, a `plant` entity of Home
-   Assistant's Plant Monitor, or a sensor that has all the readings as attributes (see "Where the readings come from").
-   A plant of [Plant Monitor](https://github.com/Olen/homeassistant-plant) is the easiest: the tile finds its sensors
-   and takes its good ranges from the plant itself, so you can skip steps 4 and 6.
-4. Fill in the sensors the entity does not have: **Temperature sensor**, **Humidity sensor** and **Light sensor**, as
-   entity ids such as `sensor.monstera_temperature`. Leave them empty when the entity has the reading as an attribute.
-5. Optional, but best: make a helper in Home Assistant (Settings, Devices & services, Helpers, **Date and/or time**,
+3. In the inspector, choose the tile's **entity**: best a plant of
+   [Plant Monitor](https://github.com/Olen/homeassistant-plant) (the plant itself, not one of its sensors): the tile
+   finds its sensors and takes its good ranges from the plant. A sensor that has the readings as attributes, or a soil
+   moisture sensor alone, works too, with ranges that suit a leafy houseplant: soil 30 to 70 %, 16 to 28 °C, air 40
+   to 70 %, light 1,000 to 25,000 lx (see "Where the readings come from").
+4. Optional, but best: make a helper in Home Assistant (Settings, Devices & services, Helpers, **Date and/or time**,
    with date and time) and fill its id into **Watering helper**, such as `input_datetime.monstera_watered`. A tap on
    the plant then sets it, every screen sees the same watering, and it survives restarts. An **input_button** or a
    **button** works too.
-6. Set the good ranges for your plant (the defaults suit a leafy houseplant): soil 30 to 70 %, 16 to 28 °C, air 40 to
-   70 %, light 1,000 to 25,000 lx.
-7. To act on the plant, the screen must be allowed to perform actions in Home Assistant (the ESPHome integration's
+5. To act on the plant, the screen must be allowed to perform actions in Home Assistant (the ESPHome integration's
    option *Allow the device to perform Home Assistant actions*). Without it, watering is kept on the screen only.
 
 ## Where the readings come from
@@ -54,11 +51,9 @@ The screen never makes a network connection of its own, by Tessera's rules. Home
 
 - **The tile's entity** is sent to the screen by Tessera at every change: its state (the soil moisture) and its
   attributes `moisture`, `temperature`, `humidity`, `brightness` or `illuminance`, and `watered_at`.
-- **A plant of Plant Monitor** is asked for its sensors, their readings and its good ranges (`plant/get_info`), at
-  the same pace as the sensors below. Its ranges replace the tile's.
-- **The sensors in the options** are asked of Home Assistant through the Tessera app, every 60 seconds by default
-  (the setting **Plant poll seconds**, 30 to 300), only while the tile is on the glass and the screen is awake. This is
-  the same as reading `/api/states/<entity>` of Home Assistant's REST API, over the app's own connection.
+- **A plant of Plant Monitor** is asked for its sensors, their readings and its good ranges (`plant/get_info`), through
+  the Tessera app, every 60 seconds by default (the setting **Plant poll seconds**, 30 to 300), only while the tile is
+  on the glass and the screen is awake. The watering helper is asked at the same pace.
 - **A sensor node with a JSON API on your network** (an ESP32 in the pot, say): Tessera does not let a plugin reach a
   local address, so let Home Assistant read it with a RESTful sensor, and choose that sensor as the tile's entity.
   Home Assistant asks it every 30 seconds:
@@ -76,7 +71,7 @@ rest:
         json_attributes: [moisture, temperature, humidity, illuminance]
 ```
 
-- **Separate sensors you already have**, as one entity (then the tile needs no options):
+- **Separate sensors you already have**, as one entity:
 
 ```yaml
 template:
@@ -92,8 +87,7 @@ template:
           watered_at: "{{ states('input_datetime.monstera_watered') }}"
 ```
 
-A temperature in °F is turned into °C. A light sensor in % (a relative level) works too: set the light range from 0
-to 100 then. The card's 24 hours come from Home Assistant's statistics, so they show for a sensor with a
+A temperature in °F is turned into °C. The card's 24 hours come from Home Assistant's statistics, so they show for a sensor with a
 `state_class` (most do); a reading that is an attribute has no history of its own.
 
 ## Settings
@@ -104,7 +98,7 @@ the top bar, Settings, Plugins, MicroPlant):
 | Setting | What it does |
 |---|---|
 | Plant demo data | Every plant tile of this screen shows the demo plant. |
-| Plant poll seconds | How often a tile asks for the sensors of its options. |
+| Plant poll seconds | How often a tile asks Plant Monitor and the watering helper. |
 | Plant watered at | The last watering of a plant without a helper, kept on the screen. The screen's settings page has a **Watered now** row for it. |
 
 ## Privacy

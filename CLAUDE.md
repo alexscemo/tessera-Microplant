@@ -19,7 +19,7 @@ by the checker, so icon codepoints must stay 5 hex digits like `0xF058C`), no wo
 
 | File | What |
 |---|---|
-| `tessera-plugin.yaml` | Manifest: tile `plant` (12 options = the maximum), card `metric` (wide), bar item `thirsty`, settings, `ha_commands`, `answers`, actions |
+| `tessera-plugin.yaml` | Manifest: tile `plant` (one option: the watering helper), card `metric` (wide), bar item `thirsty`, settings, `ha_commands`, `answers`, actions |
 | `plugin.yaml` | Three ESPHome entities (the settings) and the component config |
 | `components/microplant/microplant_model.h` | Pure logic, no LVGL: **config constants at the top**, metrics, ranges, statuses, moods, demo data, time parsing, value text |
 | `components/microplant/microplant_avatar.h/.cpp` | The vector plant (LVGL blocks + lines), poses per mood, animations |

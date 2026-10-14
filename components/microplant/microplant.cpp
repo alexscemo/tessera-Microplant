@@ -25,10 +25,6 @@ static const char *const LOW_HINTS[METRIC_COUNT] = {"hint_soil_low", "hint_tempe
                                                     "hint_light_low"};
 static const char *const HIGH_HINTS[METRIC_COUNT] = {"hint_soil_high", "hint_temperature_high", "hint_humidity_high",
                                                      "hint_light_high"};
-// The tile's options (tessera-plugin.yaml): the entity of each reading (the soil's is the tile's own) and its range.
-static const char *const ENTITY_OPTIONS[METRIC_COUNT] = {"", "temperature_entity", "humidity_entity", "light_entity"};
-static const char *const LOW_OPTIONS[METRIC_COUNT] = {"moisture_low", "temperature_low", "humidity_low", "light_low"};
-static const char *const HIGH_OPTIONS[METRIC_COUNT] = {"moisture_high", "temperature_high", "humidity_high", "light_high"};
 
 static const char *mood_key(Mood mood) {
   switch (mood) {
@@ -162,9 +158,8 @@ class PlantTile : public tessera::Tile {
   lv_obj_t *parent_{};
   int width_ = 0, height_ = 0, tile_ = -1;
   tessera::Text entity_, name_text_;
-  char entities_[METRIC_COUNT][64]{};  // the sensors of the options; [MOISTURE] is unused (the tile's entity)
   char watered_entity_[64] = "";
-  Range ranges_[METRIC_COUNT]{};
+  Range ranges_[METRIC_COUNT]{DEFAULT_RANGES[0], DEFAULT_RANGES[1], DEFAULT_RANGES[2], DEFAULT_RANGES[3]};
   bool plant_domain_ = false;
   // Plant Monitor (plant/get_info): the sensor of each reading, its value and its range from the plant's own settings.
   char info_entities_[METRIC_COUNT][64]{};
@@ -174,7 +169,6 @@ class PlantTile : public tessera::Tile {
   bool chosen_ = false;                 // an entity is chosen and Home Assistant sent it
   float state_value_ = NAN;             // the tile entity's state as a number
   float attribute_[METRIC_COUNT]{NAN, NAN, NAN, NAN};
-  float polled_[METRIC_COUNT]{NAN, NAN, NAN, NAN};
   bool light_percent_ = false, fahrenheit_ = false;
   uint32_t watered_attribute_ = 0, watered_polled_ = 0, watered_here_ = 0, thanks_until_ = 0;
   uint32_t asked_ = 0, info_asked_ = 0, next_ask_ = 0, last_answer_ = 0, first_ask_ = 0;
@@ -203,11 +197,6 @@ void PlantTile::create(const tessera::TileContext &c) {
   entity_ = c.entity ? c.entity : "";
   name_text_ = c.name && *c.name ? c.name : "";
   plant_domain_ = starts_with(entity_.c_str(), "plant.");
-  for (int i = 0; i < METRIC_COUNT; ++i) {
-    if (*ENTITY_OPTIONS[i]) snprintf(entities_[i], sizeof(entities_[i]), "%s", c.options[ENTITY_OPTIONS[i]] | "");
-    Range r{c.options[LOW_OPTIONS[i]] | DEFAULT_RANGES[i].low, c.options[HIGH_OPTIONS[i]] | DEFAULT_RANGES[i].high};
-    ranges_[i] = r.low < r.high ? r : DEFAULT_RANGES[i];
-  }
   snprintf(watered_entity_, sizeof(watered_entity_), "%s", c.options["watered_entity"] | "");
 
   // The shape of the tile picks its layout: a page of its own, wide, tall, or one cell.
@@ -415,14 +404,9 @@ void PlantTile::on_state(JsonObjectConst data) {
   paint(now);
 }
 
-bool PlantTile::polls() const {
-  if (plant_domain_ || *watered_entity_) return true;
-  for (int i = 0; i < METRIC_COUNT; ++i)
-    if (*entities_[i]) return true;
-  return false;
-}
+bool PlantTile::polls() const { return plant_domain_ || *watered_entity_; }
 
-// Ask Home Assistant, through the app, for the states of the sensors of the options over the last minute.
+// Ask Home Assistant, through the app: a plant of Plant Monitor for its readings, the watering helper for its moment.
 void PlantTile::ask(uint32_t now) {
   if (!first_ask_) first_ask_ = now;
   next_ask_ = now + plugin_->poll_seconds();
@@ -434,21 +418,18 @@ void PlantTile::ask(uint32_t now) {
     info_asked_ = tessera::send(plugin_, request.as<JsonObjectConst>());
     if (!info_asked_) next_ask_ = now + config::RETRY_SECONDS;
   }
-  if (!*watered_entity_ && !*entities_[TEMPERATURE] && !*entities_[HUMIDITY] && !*entities_[LIGHT]) return;
+  if (!*watered_entity_) return;
   char start[32];
   iso_utc(now - config::POLL_WINDOW_SECONDS, start, sizeof(start));
   JsonDocument request;
   request["ask"] = "history/history_during_period";
   JsonObject data = request["data"].to<JsonObject>();
   data["start_time"] = start;
-  JsonArray ids = data["entity_ids"].to<JsonArray>();
-  for (int i = 0; i < METRIC_COUNT; ++i)
-    if (*entities_[i]) ids.add(entities_[i]);
-  if (*watered_entity_) ids.add(watered_entity_);
+  data["entity_ids"].to<JsonArray>().add(watered_entity_);
   data["include_start_time_state"] = true;
   data["significant_changes_only"] = false;
   data["minimal_response"] = true;   // the attributes only with the first state of each
-  data["no_attributes"] = false;     // for the unit (°F, %) and an input_datetime's timestamp
+  data["no_attributes"] = false;     // for an input_datetime's timestamp
   asked_ = tessera::send(plugin_, request.as<JsonObjectConst>());
   if (!asked_) next_ask_ = now + config::RETRY_SECONDS;
 }
@@ -466,16 +447,16 @@ void PlantTile::read_info(JsonObjectConst info) {
       v = (v - 32.0f) * 5.0f / 9.0f;
       low = (low - 32.0f) * 5.0f / 9.0f;
       high = (high - 32.0f) * 5.0f / 9.0f;
-      if (!*entities_[i]) fahrenheit_ = true;
+      fahrenheit_ = true;
     }
-    if (i == LIGHT && !*entities_[i]) light_percent_ = strcmp(unit, "%") == 0;
+    if (i == LIGHT) light_percent_ = strcmp(unit, "%") == 0;
     info_[i] = v;
-    // The plant's own range wins over the tile's options: it is set once, in Plant Monitor.
+    // The plant's own range, set in Plant Monitor; the default range where it has none.
     if (low < high) ranges_[i] = {low, high};
   }
 }
 
-// {"re", "ok": true, "result": {"sensor.x": [{"s": "21.4", "a": {...}, "lu": 1791...}, {"s": "21.5", "lu": ...}]}}
+// {"re", "ok": true, "result": {"input_datetime.x": [{"s": "2026-10-11 08:30:00", "a": {...}, "lu": 1791...}]}}
 bool PlantTile::answer(JsonObjectConst m) {
   if (info_asked_ && (m["re"] | 0u) == info_asked_) {
     info_asked_ = 0;
@@ -505,22 +486,8 @@ bool PlantTile::answer(JsonObjectConst m) {
   }
   failures_ = 0;
   last_answer_ = now;
-  JsonObjectConst result = m["result"];
-  for (int i = 0; i < METRIC_COUNT; ++i) {
-    if (!*entities_[i]) continue;
-    JsonArrayConst rows = result[entities_[i]];
-    if (rows.size() == 0) continue;  // nothing in Home Assistant's history: keep the last reading
-    const char *unit = rows[0]["a"]["unit_of_measurement"] | "";
-    float v = parse_number(rows[rows.size() - 1]["s"] | "");
-    if (i == TEMPERATURE) {
-      fahrenheit_ = strstr(unit, "F") != nullptr;
-      if (fahrenheit_ && !std::isnan(v)) v = (v - 32.0f) * 5.0f / 9.0f;
-    }
-    if (i == LIGHT) light_percent_ = strcmp(unit, "%") == 0;
-    polled_[i] = v;
-  }
   if (*watered_entity_) {
-    JsonArrayConst rows = result[watered_entity_];
+    JsonArrayConst rows = m["result"][watered_entity_];
     if (rows.size()) {
       // An input_button's state is the moment it was pressed; an input_datetime's is a local time, with the moment in
       // its attribute `timestamp` (of the first row: the last row's own when it changed within the minute asked).
@@ -536,7 +503,7 @@ bool PlantTile::answer(JsonObjectConst m) {
   return true;
 }
 
-// The readings now, from the demo or from Home Assistant: a sensor of an option first, then an attribute of the
+// The readings now, from the demo or from Home Assistant: Plant Monitor's sensors first, then an attribute of the
 // tile's entity, then (for the soil) the entity's own state.
 void PlantTile::read_values(uint32_t now) {
   const bool fake = demo();
@@ -544,8 +511,6 @@ void PlantTile::read_values(uint32_t now) {
     float v = NAN;
     if (fake) {
       v = now ? demo_value(static_cast<Metric>(i), now, plugin_->demo_watered(now)) : NAN;
-    } else if (*entities_[i]) {
-      v = polled_[i];
     } else if (*info_entities_[i]) {
       v = info_[i];
     } else {
@@ -710,8 +675,7 @@ void PlantTile::open_detail(int metric) {
   // The sensor with a history: an option's own, or the tile's entity for the soil when it is that sensor.
   const char *entity = "";
   if (!d.demo) {
-    if (*entities_[metric]) entity = entities_[metric];
-    else if (*info_entities_[metric]) entity = info_entities_[metric];
+    if (*info_entities_[metric]) entity = info_entities_[metric];
     else if (metric == MOISTURE && !plant_domain_ && std::isnan(attribute_[MOISTURE])) entity = entity_.c_str();
   }
   snprintf(d.entity, sizeof(d.entity), "%s", entity);

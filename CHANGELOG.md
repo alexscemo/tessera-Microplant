@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.3.0 - 2026-10-14
+- The sensor and range options are gone: choose the plant of Plant Monitor as the tile's entity, and its sensors and
+  good ranges come from the plant. Other entities use ranges that suit a leafy houseplant.
+- Sensors typed into the old options are no longer read.
+
 ## 0.2.0 - 2026-10-14
 - A plant of Plant Monitor brings its own sensors and good ranges: no sensors or ranges to fill in.
 - The Plant tile can take a whole page (2x3 on the 4-inch square).

@@ -2,7 +2,7 @@
 # every name, label and hint below is a key into translations/<language>.json, part "app".
 # Every field is explained in docs/MANIFEST.md of the plugins repository.
 id: microplant
-version: 0.2.0
+version: 0.3.0
 # 0.10 for tap_point() (the plant, its watering key and each reading answer a tap of their own), and 0.9 for the green,
 # amber and red of a reading (Tone::GOOD, ui::set_fill). Both are on Tessera's dev branch until its next release.
 api: "0.10"
@@ -17,7 +17,7 @@ boards: any
 flash_kb: 26
 
 permissions:
-  # The tile asks for the current state of the sensors named in its options (a minute of their history), every
+  # The tile asks for the current state of its watering helper (a minute of its history), every
   # "Plant poll seconds" (a plant of Plant Monitor: its sensors, values and ranges); a reading's card asks for the hourly
   # means of its last 24 hours.
   ha_commands: ["history/history_during_period", "recorder/statistics_during_period", "plant/get_info"]
@@ -33,7 +33,7 @@ answers:
 tiles:
   # The plant and its four readings. It belongs to one entity, chosen in the editor: the soil moisture sensor, a plant
   # of Plant Monitor (its sensors and good ranges come from the plant itself), or a template sensor with the readings
-  # as attributes. The other sensors are entity ids in the options; their good ranges too, unless the plant has its own.
+  # as attributes. The one option is the watering helper.
   - id: plant
     name: tile_name
     icon: sprout
@@ -49,18 +49,7 @@ tiles:
     example: tile_example
     preview: { title: "{name}", value: "{state}" }
     options:
-      - { id: temperature_entity, kind: text, label: temperature_entity, hint: temperature_entity_hint }
-      - { id: humidity_entity, kind: text, label: humidity_entity, hint: humidity_entity_hint }
-      - { id: light_entity, kind: text, label: light_entity, hint: light_entity_hint }
       - { id: watered_entity, kind: text, label: watered_entity, hint: watered_entity_hint }
-      - { id: moisture_low, kind: number, min: 0, max: 100, step: 1, unit: "%", default: 30, label: moisture_low, hint: range_hint }
-      - { id: moisture_high, kind: number, min: 0, max: 100, step: 1, unit: "%", default: 70, label: moisture_high }
-      - { id: temperature_low, kind: number, min: -10, max: 40, step: 1, unit: "°C", default: 16, label: temperature_low }
-      - { id: temperature_high, kind: number, min: -10, max: 45, step: 1, unit: "°C", default: 28, label: temperature_high }
-      - { id: humidity_low, kind: number, min: 0, max: 100, step: 1, unit: "%", default: 40, label: humidity_low }
-      - { id: humidity_high, kind: number, min: 0, max: 100, step: 1, unit: "%", default: 70, label: humidity_high }
-      - { id: light_low, kind: number, min: 0, max: 100000, step: 100, unit: lx, default: 1000, label: light_low, hint: light_range_hint }
-      - { id: light_high, kind: number, min: 0, max: 120000, step: 500, unit: lx, default: 25000, label: light_high }
 
 cards:
   # One reading of the plant: its value, where it stands in its range, what to do, and its last 24 hours.
