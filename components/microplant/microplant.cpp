@@ -174,6 +174,7 @@ class PlantTile : public tessera::Tile {
   tessera::Text entity_, name_text_, entity_name_;
   char watered_entity_[64] = "";
   char battery_entity_[64] = "";  // the plant sensor's battery (option), its mark shows when it is low
+  char shape_[16] = "";           // the kind of plant drawn (option); "" or "auto" follows the plant's species
   Range ranges_[METRIC_COUNT]{DEFAULT_RANGES[0], DEFAULT_RANGES[1], DEFAULT_RANGES[2], DEFAULT_RANGES[3]};
   bool plant_domain_ = false;
   // Plant Monitor (plant/get_info): the sensor of each reading, its value and its range from the plant's own settings.
@@ -222,6 +223,7 @@ void PlantTile::create(const tessera::TileContext &c) {
   plant_domain_ = starts_with(entity_.c_str(), "plant.");
   snprintf(watered_entity_, sizeof(watered_entity_), "%s", c.options["watered_entity"] | "");
   snprintf(battery_entity_, sizeof(battery_entity_), "%s", c.options["battery_entity"] | "");
+  snprintf(shape_, sizeof(shape_), "%s", c.options["shape"] | "");
 
   // The shape of the tile picks its layout: a page of its own, wide, tall, or one cell.
   const bool wide = width_ >= ui::px(300), high = height_ >= ui::px(240);
@@ -229,6 +231,7 @@ void PlantTile::create(const tessera::TileContext &c) {
   else if (wide) layout_wide();
   else if (height_ >= ui::px(200)) layout_tall();
   else layout_small();
+  avatar_.set_shape(shape_of(shape_));
   on_theme();
 }
 
@@ -476,6 +479,9 @@ void PlantTile::on_state(JsonObjectConst data) {
     entity_ = id;
     plant_domain_ = true;
   }
+  // The plant drawn follows its species (Plant Monitor's), unless the tile's option chose one ("auto" did not).
+  if ((!*shape_ || !strcmp(shape_, "auto")) && attrs["species"].is<const char *>())
+    avatar_.set_shape(shape_of(attrs["species"].as<const char *>()));
   attribute_[MOISTURE] = number_of(attrs["moisture"]);
   attribute_[TEMPERATURE] = celsius_of_attribute(number_of(attrs["temperature"]));
   attribute_[HUMIDITY] = number_of(attrs["humidity"]);

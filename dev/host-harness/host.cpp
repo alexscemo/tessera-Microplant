@@ -3,6 +3,7 @@
 // Renders PPM frames of the MicroPlant tile in many states, light and dark, and the metric card.
 #include "esphome/components/smart_display/plugin_api.h"
 #include "../../components/microplant/microplant.h"
+#include "../../components/microplant/microplant_shapes.h"
 #include <cassert>
 #include <cstdlib>
 #include <cstdio>
@@ -333,11 +334,12 @@ static const char *ATTR_OPTIONS =
     R"("humidity_high":70,"light_low":1000,"light_high":25000})";
 
 // A template sensor or a Plant Monitor entity with every reading as an attribute.
-static std::string attrs(float soil, float temp, float hum, float lux) {
-  char b[256];
+static std::string attrs(float soil, float temp, float hum, float lux, const char *species = nullptr) {
+  char b[320], sp[80] = "";
+  if (species) snprintf(sp, sizeof sp, R"(,"species":"%s")", species);
   snprintf(b, sizeof b,
-           R"({"state":"%.0f","name":"Plant","attributes":{"moisture":%.0f,"temperature":%.1f,"humidity":%.0f,"illuminance":%.0f,"watered_at":%u}})",
-           soil, soil, temp, hum, lux, tessera::g_epoch - 2 * 86400);
+           R"({"state":"%.0f","name":"Plant","attributes":{"moisture":%.0f,"temperature":%.1f,"humidity":%.0f,"illuminance":%.0f,"watered_at":%u%s}})",
+           soil, soil, temp, hum, lux, tessera::g_epoch - 2 * 86400, sp);
   return b;
 }
 
@@ -446,6 +448,33 @@ int main() {
     place(1, 0, 1, 2, ATTR_OPTIONS, "sensor.plant_g", "Orchid", attrs(40, 22, 28, 9000));    // dry air
     place(1, 2, 1, 1, ATTR_OPTIONS, "sensor.plant_h", "Ivy", attrs(9, 22, 55, 9000));        // parched
     save("tall-" + look);
+
+    // 8. Every kind of plant (by its option), well, thirsty and parched, three to a page; a page of each; and kinds by
+    // species in other moods.
+    const float SOIL[3] = {50, 22, 9};
+    const char *STEP[3] = {"good", "thirsty", "parched"};
+    for (int k = 0; k < 3; ++k)
+      for (int first = 0; first < SHAPE_COUNT; first += 3) {
+        page(dark);
+        for (int i = first; i < first + 3 && i < SHAPE_COUNT; ++i)
+          place(0, i - first, 2, 1, std::string(R"({"shape":")") + SHAPES[i].id + "\"}", "sensor.plant_s",
+                SHAPES[i].id, attrs(SOIL[k], 22, 55, 9000));
+        save(std::string("kinds-") + STEP[k] + char('0' + first / 3) + "-" + look);
+      }
+    for (int i = 0; i < SHAPE_COUNT; ++i) {
+      page(dark);
+      place(0, 0, 2, 3, std::string(R"({"shape":")") + SHAPES[i].id + "\"}", "sensor.plant_s", SHAPES[i].id,
+            attrs(50, 22, 55, 9000));
+      save(std::string("kind-full-") + SHAPES[i].id + "-" + look);
+    }
+    page(dark);
+    place(0, 0, 1, 1, R"({"shape":"auto"})", "sensor.plant_s", "Plant", attrs(84, 21, 55, 9000, "Monstera deliciosa"));
+    place(1, 0, 1, 1, "{}", "sensor.plant_s", "Plant", attrs(50, 12, 55, 9000, "Sansevieria trifasciata"));  // cold
+    place(0, 1, 1, 1, "{}", "sensor.plant_s", "Plant", attrs(50, 31, 55, 9000, "Chlorophytum comosum"));  // hot
+    place(1, 1, 1, 1, "{}", "sensor.plant_s", "Plant", attrs(50, 22, 55, 260, "Echeveria elegans"));  // dark
+    place(0, 2, 1, 1, "{}", "sensor.plant_s", "Plant", attrs(50, 22, 55, 9000, "Epipremnum aureum"));
+    place(1, 2, 1, 1, "{}", "sensor.plant_s", "Plant", attrs(50, 12, 55, 9000, "Phalaenopsis"));  // cold
+    save("kinds-moods-" + look);
 
     // 7. The cards, over a page of their own: soil with history, light of the demo.
     for (int which = 0; which < 2; ++which) {

@@ -1,5 +1,5 @@
 #pragma once
-// The plant itself: a pot with a face, a stem and four leaves, drawn from LVGL objects in a square. Its pose follows the
+// The plant itself: a pot with a face, a stem and four leaves (or another kind's, microplant_shapes.h), drawn from LVGL objects in a square. Its pose follows the
 // plant's mood (leaves up or drooping, a smile or a frown, a sweat drop, closed eyes), and it moves now and then: it
 // blinks, sways, and jumps with sparkles and a drop of water when it is watered.
 //
@@ -8,6 +8,7 @@
 // nothing outlives the tile.
 #include "esphome/components/smart_display/plugin_api.h"
 #include "microplant_model.h"
+#include "microplant_shapes.h"
 
 namespace esphome::microplant {
 
@@ -17,6 +18,8 @@ class PlantAvatar {
   void create(lv_obj_t *parent, int x, int y, int size);
   // The pose of a mood; the same mood again changes nothing.
   void set_mood(Mood mood);
+  // The kind of plant drawn, an index into SHAPES (microplant_shapes.h); the same again changes nothing.
+  void set_shape(uint8_t shape);
   // The colours of the look (the plant's colours are the same in light and dark, its ground is not).
   void on_theme();
   // Once a second: a blink now and then, a sway, a shiver when cold. `quiet` (standby) keeps it still.
@@ -38,9 +41,10 @@ class PlantAvatar {
   lv_obj_t *stem_{}, *leaf_[4][3]{}, *flower_{}, *flower_mid_{};  // a leaf: its stalk, its body, its tip
   lv_obj_t *pot_{}, *rim_{}, *eye_[2]{}, *cheek_[2]{}, *mouth_{};
   lv_obj_t *sweat_{}, *drop_{}, *spark_[4]{}, *note_{};
-  lv_point_precise_t stem_pts_[3]{}, leaf_pts_[4][4]{}, mouth_pts_[5]{};
+  lv_point_precise_t stem_pts_[3]{}, leaf_pts_[4][5]{}, mouth_pts_[5]{};
   int x_ = 0, y_ = 0, size_ = 0, eye_h_ = 0;
   Mood mood_ = Mood::WAITING;
+  uint8_t shape_ = 0;
   bool posed_ = false;
 };
 

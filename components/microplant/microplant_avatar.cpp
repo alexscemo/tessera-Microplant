@@ -192,6 +192,14 @@ static PlantAvatar::Pose pose_of(Mood mood) {
   }
 }
 
+// ---- The shapes ----
+
+void PlantAvatar::set_shape(uint8_t shape) {
+  if (shape == shape_ || shape >= SHAPE_COUNT) return;
+  shape_ = shape;
+  if (posed_) apply(pose_of(mood_));
+}
+
 void PlantAvatar::set_mood(Mood mood) {
   if (!root_ || (posed_ && mood == mood_)) return;
   mood_ = mood;
@@ -206,57 +214,72 @@ void PlantAvatar::apply(const Pose &p) {
   const float d = p.droop, t = p.tuck;
   // The stem bends over a little as the plant droops.
   const float bx = 0.5f, by = 0.6f;
-  const float tx = 0.5f + 0.13f * d, ty = 0.2f + 0.13f * d;
+  const Form &form = SHAPES[shape_].form;
+  const float tx = 0.5f + form.lean * d, ty = 0.2f + 0.13f * d;
   const float mx = lerp(bx, tx, 0.5f) + 0.012f * d, my = lerp(by, ty, 0.5f);
   stem_pts_[0] = {at(bx), at(by)};
   stem_pts_[1] = {at(mx), at(my)};
   stem_pts_[2] = {at(tx), at(ty)};
-  lv_obj_set_style_line_width(stem_, std::max(2, at(0.04f)), 0);
+  lv_obj_set_style_line_width(stem_, std::max(2, at(form.stem)), 0);
+  lv_obj_set_style_opa(stem_, form.stem > 0 ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
   place_line(stem_, stem_pts_, 3);
 
-  // Two pairs of leaves on the stem. A leaf is a thin stalk, a round body and a narrower tip along a line from its node
-  // at an angle: raised when the plant does well, hanging when it droops, pulled up against the stem when it is cold.
-  struct Leaf { float along, length, up, down, side; };
-  static constexpr Leaf LEAVES[4] = {
-      {0.38f, 0.33f, 16.0f, -44.0f, 1}, {0.38f, 0.33f, 16.0f, -44.0f, -1},
-      {0.72f, 0.26f, 38.0f, -6.0f, 1}, {0.72f, 0.26f, 38.0f, -6.0f, -1}};
+  // The leaves (see Form): raised when the plant does well, hanging when it droops, pulled in when it is cold.
   const lv_color_t green = lv_color_mix(ui::color(p.tint), ui::color(theme::MARK_GREEN), p.tint_mix);
-  // The upper pair a shade towards the card, so the two pairs read apart in both looks.
+  // Young leaves a shade towards the card, so they read apart from the ones behind in both looks.
   const lv_color_t young = lv_color_mix(ui::color(theme::CARD), green, 70);
+  const float droop = std::clamp(d, -0.3f, 1.0f);
   for (int i = 0; i < 4; ++i) {
-    const Leaf &leaf = LEAVES[i];
-    const float nx = lerp(bx, tx, leaf.along), ny = lerp(by, ty, leaf.along);
-    const float droop = std::clamp(d, -0.3f, 1.0f);
+    const Leaf &leaf = form.leaves[i];
+    const bool shown = leaf.length > 0;
+    for (auto *part : leaf_[i]) lv_obj_set_style_opa(part, shown ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
+    if (!shown) continue;
+    float nx = lerp(bx, tx, leaf.along) + leaf.dx, ny = lerp(by, ty, leaf.along);
     float angle = lerp(leaf.up, leaf.down, droop);
-    angle = lerp(angle, 72.0f, t);
+    angle = lerp(angle, leaf.up > 90.0f ? 108.0f : 72.0f, t);
     const float length = leaf.length * (1.0f - 0.2f * t);
-    const float rad = angle * 0.0174533f;
-    const float ux = std::cos(rad) * leaf.side, uy = -std::sin(rad);
     // The tip curls down as the leaf hangs, and a little up when it is raised.
     const float curl = 0.08f * droop - 0.02f;
     leaf_pts_[i][0] = {at(nx), at(ny)};
-    leaf_pts_[i][1] = {at(nx + ux * length * 0.22f), at(ny + uy * length * 0.22f)};
-    leaf_pts_[i][2] = {at(nx + ux * length * 0.62f), at(ny + uy * length * 0.62f)};
-    leaf_pts_[i][3] = {at(nx + ux * length), at(ny + uy * length + curl)};
-    static constexpr float WIDTHS[3] = {0.028f, 0.135f, 0.07f};
+    float from = 0;
+    for (int k = 0; k < 3; ++k) {
+      const float rad = (angle + (k ? leaf.turn : 0) + (k == 2 ? leaf.arch : 0)) * 0.0174533f;
+      nx += std::cos(rad) * leaf.side * length * (leaf.cut[k] - from);
+      ny -= std::sin(rad) * length * (leaf.cut[k] - from);
+      from = leaf.cut[k];
+      leaf_pts_[i][k + 1] = {at(nx), at(ny + (k == 2 ? curl : 0))};
+    }
     for (int k = 0; k < 3; ++k) {
       lv_obj_t *part = leaf_[i][k];
-      const float scale = i >= 2 ? 0.85f : 1.0f;
-      lv_obj_set_style_line_width(part, std::max(k ? 3 : 2, at(WIDTHS[k] * scale)), 0);
-      lv_obj_set_style_line_color(part, i >= 2 ? young : green, 0);
+      lv_obj_set_style_line_width(part, std::max(k ? 3 : 2, at(leaf.width[k])), 0);
+      lv_obj_set_style_line_color(part, leaf.young ? young : green, 0);
       place_line(part, &leaf_pts_[i][k], 2);
+    }
+    if (form.cut) {
+      // A monstera's split: the leaf's third line, in the card's colour, cuts in from the body's edge to its middle.
+      const lv_point_precise_t &a = leaf_pts_[i][1], &b = leaf_pts_[i][2];
+      const float bxl = static_cast<float>(b.x - a.x), byl = static_cast<float>(b.y - a.y);
+      const float len = std::max(1.0f, std::sqrt(bxl * bxl + byl * byl));
+      const float w = static_cast<float>(at(leaf.width[1])), sign = i % 2 ? -1.0f : 1.0f;
+      const float ox = -byl / len * sign, oy = bxl / len * sign;
+      const float mx2 = a.x + bxl * 0.55f, my2 = a.y + byl * 0.55f;
+      leaf_pts_[i][3] = {static_cast<int32_t>(mx2 + ox * w * 0.6f), static_cast<int32_t>(my2 + oy * w * 0.6f)};
+      leaf_pts_[i][4] = {static_cast<int32_t>(mx2 + ox * w * 0.08f), static_cast<int32_t>(my2 + oy * w * 0.08f)};
+      lv_obj_set_style_line_color(leaf_[i][2], ui::color(theme::CARD), 0);
+      place_line(leaf_[i][2], &leaf_pts_[i][3], 2);
     }
   }
   lv_obj_set_style_line_color(stem_, green, 0);
 
-  // A flower on top of a plant that does well.
-  const int fd = at(0.15f), fm = at(0.06f);
+  // A flower on top of a plant that does well (of a shape with a top).
+  const int fd = at(0.15f), fm = at(0.06f), lift = at(form.flower);
   lv_obj_set_size(flower_, fd, fd);
-  lv_obj_set_pos(flower_, at(tx) - fd / 2, at(ty) - fd / 2 - at(0.02f));
+  lv_obj_set_pos(flower_, at(tx) - fd / 2, at(ty) - fd / 2 - lift);
   lv_obj_set_size(flower_mid_, fm, fm);
-  lv_obj_set_pos(flower_mid_, at(tx) - fm / 2, at(ty) - fm / 2 - at(0.02f));
-  lv_obj_set_style_opa(flower_, p.flower ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
-  lv_obj_set_style_opa(flower_mid_, p.flower ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
+  lv_obj_set_pos(flower_mid_, at(tx) - fm / 2, at(ty) - fm / 2 - lift);
+  const bool flower = p.flower && form.stem > 0 && form.flower >= 0;
+  lv_obj_set_style_opa(flower_, flower ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
+  lv_obj_set_style_opa(flower_mid_, flower ? LV_OPA_COVER : LV_OPA_TRANSP, 0);
 
   // The face.
   const int eh = std::max(2, static_cast<int>(eye_h_ * p.eyes + 0.5f));

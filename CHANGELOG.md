@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.7.0 - 2026-10-17
+- The plant looks like its kind: a monstera with big split leaves, a snake plant with upright blades, a cactus with
+  its arms (and a flower when it does well), a spider plant's arching leaves, a pothos with vines over the rim, a
+  succulent's rosette, an orchid with its flower spike, a never never plant's fanned oval
+  leaves, an umbrella plant's crown of leaflets. A plant of Plant Monitor is drawn by its species; a new option,
+  **Plant drawn**, chooses it for any tile. Every other plant keeps the leafy look. Each kind droops, shivers and
+  celebrates like the leafy one.
+
 ## 0.6.2 - 2026-10-14
 - The battery mark and the watering helper work with an entity id longer than 32 characters (most battery sensors
   have one): the app shortens the names in its answers, and the tile looked for the whole id.

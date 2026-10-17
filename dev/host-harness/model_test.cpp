@@ -1,4 +1,5 @@
 #include "../../components/microplant/microplant_model.h"
+#include "../../components/microplant/microplant_shapes.h"
 #include <cassert>
 #include <cmath>
 #include <cstdio>
@@ -64,5 +65,17 @@ int main(){
   plant_entity_of("Ficus Lyrata", id, sizeof id); assert(std::string(id) == "plant.ficus_lyrata");
   plant_entity_of("  Monstera #2! ", id, sizeof id); assert(std::string(id) == "plant.monstera_2");
   plant_entity_of("Ficus", id, 10); assert(std::string(id) == "plant.fic");
+  // The kind drawn, by species or option.
+  auto kind = [](const char *t) { return std::string(SHAPES[shape_of(t)].id); };
+  assert(kind("Monstera deliciosa") == "monstera" && kind("monstera") == "monstera");
+  assert(kind("Sansevieria trifasciata") == "snake" && kind("Dracaena trifasciata") == "snake");
+  assert(kind("Golden Barrel Cactus") == "cactus" && kind("Chlorophytum comosum") == "spider");
+  assert(kind("Epipremnum aureum") == "pothos" && kind("Hedera helix") == "pothos");
+  assert(kind("Echeveria elegans") == "succulent" && kind("Aloe vera") == "succulent");
+  assert(kind("Ctenanthe burle-marxii") == "never" && kind("Never Never Plant") == "never");
+  assert(kind("Schefflera arboricola") == "umbrella" && kind("Heptapleurum actinophyllum") == "umbrella");
+  assert(kind("Phalaenopsis") == "orchid" && kind("Ficus lyrata") == "leafy");
+  assert(kind("") == "leafy" && kind(nullptr) == "leafy" && kind("leafy") == "leafy");
+  for (uint8_t i = 0; i < SHAPE_COUNT; ++i) assert(shape_of(SHAPES[i].id) == i);  // every option id finds its kind
   puts("model: all good");
 }

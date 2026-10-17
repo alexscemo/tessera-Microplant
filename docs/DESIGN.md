@@ -68,6 +68,11 @@ MetricCard::open ──▶ tessera::send(recorder/statistics_during_period, 24 h
   4 leaves × 3 lines each: thin stalk, wide body, narrow tip; flower = two circles), then pot body + rim (MARK_AMBER),
   face (eyes, cheeks, mouth polyline in `QR_DARK`, dark in both looks), extras (sweat/puddle drop, falling drop,
   4 sparkles, a note label "z"/"!").
+- **Kinds** (`microplant_shapes.h`, data only): `SHAPES[]` = id, species words, `Form` (stem width and lean, flower
+  lift, split cuts, up to 4 `Leaf`s: node, angles up/down, turn, arch, cuts, widths). The avatar draws any `Form` with
+  the same 13 lines, so a kind is one table entry plus its manifest choice and label. Picked by the option `shape`,
+  else by `shape_of()` of the entity's `species`; stemless kinds have no flower; a monstera's third line per leaf is a
+  split in `CARD`. Re-applied at any time without new objects.
 - Colours: Tessera mark roles (same in light and dark) and `lv_color_mix` of roles; upper leaves mix with `CARD` so
   `on_theme()` re-applies the pose.
 - `Pose` per mood: droop (0 up … 1 hanging; stem bends), tuck (cold), eye openness, mouth shape

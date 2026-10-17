@@ -2,7 +2,7 @@
 # every name, label and hint below is a key into translations/<language>.json, part "app".
 # Every field is explained in docs/MANIFEST.md of the plugins repository.
 id: microplant
-version: 0.6.2
+version: 0.7.0
 # 0.10 for tap_point() (the plant, its watering key and each reading answer a tap of their own), and 0.9 for the green,
 # amber and red of a reading (Tone::GOOD, ui::set_fill). Both are on Tessera's dev branch until its next release.
 api: "0.10"
@@ -51,6 +51,25 @@ tiles:
     options:
       - { id: watered_entity, kind: text, label: watered_entity, hint: watered_entity_hint }
       - { id: battery_entity, kind: text, label: battery_entity, hint: battery_entity_hint }
+      # The plant drawn: by Plant Monitor's species when empty or `auto` (else leafy). Any other value is an id of SHAPES
+      # in components/microplant/microplant_shapes.h.
+      - id: shape
+        kind: choice
+        label: shape
+        hint: shape_hint
+        default: auto
+        choices:
+          - { value: auto, label: shape_auto }
+          - { value: leafy, label: shape_leafy }
+          - { value: monstera, label: shape_monstera }
+          - { value: snake, label: shape_snake }
+          - { value: cactus, label: shape_cactus }
+          - { value: spider, label: shape_spider }
+          - { value: pothos, label: shape_pothos }
+          - { value: succulent, label: shape_succulent }
+          - { value: orchid, label: shape_orchid }
+          - { value: never, label: shape_never }
+          - { value: umbrella, label: shape_umbrella }
 
 cards:
   # One reading of the plant: its value, where it stands in its range, what to do, and its last 24 hours.
