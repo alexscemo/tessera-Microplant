@@ -1,5 +1,6 @@
 # What tools/preview.py shows (docs/PREVIEW.md of the plugins repository). The first tile shows the plugin best: a
-# Monstera of Plant Monitor, whose sensors, readings and ranges come from the plant (plant/get_info).
+# Monstera of Plant Monitor, a little thirsty (so the top bar asks to water it), whose sensors, readings and ranges
+# come from the plant (plant/get_info).
 time_zone: Europe/London
 
 tiles:
@@ -43,39 +44,40 @@ states:
       watered_at: "{epoch-6d}"
 
 commands:
-  # The tile's poll of its watering helper and its sensor's battery (low): their states at the start of the last minute.
+  # The tile's poll of its watering helper and its sensor's battery (full: no mark): their states at the start of the
+  # last minute.
   "history/history_during_period":
     input_datetime.monstera_watered: [{ s: "2026-10-11 08:30:00", a: { timestamp: 1791703800 }, lu: 1791703800 }]
-    sensor.monstera_battery: [{ s: "18", a: { unit_of_measurement: "%" }, lu: 1791703800 }]
+    sensor.monstera_battery: [{ s: "86", a: { unit_of_measurement: "%" }, lu: 1791703800 }]
   # Plant Monitor's plant: Home Assistant's answer, {"result": {...}}.
   "plant/get_info":
     result:
-      moisture: { max: 60, min: 15, current: "48", icon: "mdi:water", unit_of_measurement: "%", sensor: sensor.monstera_soil_moisture }
+      moisture: { max: 60, min: 15, current: "12", icon: "mdi:water", unit_of_measurement: "%", sensor: sensor.monstera_soil_moisture }
       temperature: { max: 30, min: 12, current: "22.4", icon: "mdi:thermometer", unit_of_measurement: "°C", sensor: sensor.monstera_temperature }
       illuminance: { max: 35000, min: 1500, current: "8200", icon: "mdi:brightness-6", unit_of_measurement: lx, sensor: sensor.monstera_illuminance }
       humidity: { max: 70, min: 30, current: "55", icon: "mdi:water-percent", unit_of_measurement: "%", sensor: sensor.monstera_air_humidity }
       conductivity: { max: 2000, min: 350, current: "900", icon: "mdi:spa-outline", unit_of_measurement: "µS/cm", sensor: sensor.monstera_conductivity }
-  # A reading's card: the soil's hourly means alone (the bench gives every card this one answer, so more sensors would
-  # mix in one chart; Home Assistant answers for the one sensor asked), in Home Assistant's own shape (the manifest's
-  # `answers` maps it).
+  # A reading's card: the temperature's hourly means alone (the bench gives every card this one answer, so more sensors
+  # would mix in one chart; Home Assistant answers for the one sensor asked), in Home Assistant's own shape (the
+  # manifest's `answers` maps it). The temperature, as the store picture shows the card a tap on the 2x1 tile opens.
   "recorder/statistics_during_period":
-    sensor.monstera_soil_moisture:
-      - { start: 1791913560000, end: 1791917160000, mean: 63.1 }
-      - { start: 1791917160000, end: 1791920760000, mean: 61.8 }
-      - { start: 1791920760000, end: 1791924360000, mean: 60.2 }
-      - { start: 1791924360000, end: 1791927960000, mean: 59.0 }
-      - { start: 1791927960000, end: 1791931560000, mean: 57.7 }
-      - { start: 1791931560000, end: 1791935160000, mean: 56.9 }
-      - { start: 1791935160000, end: 1791938760000, mean: 55.4 }
-      - { start: 1791938760000, end: 1791942360000, mean: 54.6 }
-      - { start: 1791942360000, end: 1791945960000, mean: 53.3 }
-      - { start: 1791945960000, end: 1791949560000, mean: 52.5 }
-      - { start: 1791949560000, end: 1791953160000, mean: 51.6 }
-      - { start: 1791953160000, end: 1791956760000, mean: 50.8 }
-      - { start: 1791956760000, end: 1791960360000, mean: 50.1 }
-      - { start: 1791960360000, end: 1791963960000, mean: 49.5 }
-      - { start: 1791963960000, end: 1791967560000, mean: 49.0 }
-      - { start: 1791967560000, end: 1791971160000, mean: 48.6 }
+    sensor.monstera_temperature:
+      - { start: 1791913560000, end: 1791917160000, mean: 18.6 }
+      - { start: 1791917160000, end: 1791920760000, mean: 18.3 }
+      - { start: 1791920760000, end: 1791924360000, mean: 18.1 }
+      - { start: 1791924360000, end: 1791927960000, mean: 18.0 }
+      - { start: 1791927960000, end: 1791931560000, mean: 18.2 }
+      - { start: 1791931560000, end: 1791935160000, mean: 18.7 }
+      - { start: 1791935160000, end: 1791938760000, mean: 19.4 }
+      - { start: 1791938760000, end: 1791942360000, mean: 20.1 }
+      - { start: 1791942360000, end: 1791945960000, mean: 20.8 }
+      - { start: 1791945960000, end: 1791949560000, mean: 21.4 }
+      - { start: 1791949560000, end: 1791953160000, mean: 21.9 }
+      - { start: 1791953160000, end: 1791956760000, mean: 22.3 }
+      - { start: 1791956760000, end: 1791960360000, mean: 22.6 }
+      - { start: 1791960360000, end: 1791963960000, mean: 22.7 }
+      - { start: 1791963960000, end: 1791967560000, mean: 22.6 }
+      - { start: 1791967560000, end: 1791971160000, mean: 22.4 }
 
 cards:
-  - { card: metric, entity: sensor.monstera_soil_moisture }
+  - { card: metric, entity: sensor.monstera_temperature }

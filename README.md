@@ -6,6 +6,10 @@ sweating in the heat, shivering in the cold, asleep in the dark. Tap it when you
 
 Made for the 4-inch square screens (480 x 480), and drawn for every size from one cell to a page of its own.
 
+**Tried on:** the Guition 4-inch square screen (480 x 480), where it works nicely. The other screens are drawn by
+Tessera's bench (the CYD, the Waveshare 4.3-inch portrait and the JC8012P4A1) but not tried on glass yet; a line in an
+issue helps if you run it on one.
+
 ## What you see
 
 - **The plant**, in the middle of the tile. Its mood follows the reading that is furthest out of its range, the soil

@@ -1,11 +1,15 @@
-# Status (2026-10-13, version 0.1.0)
+# Status (2026-10-19, version 0.7.1)
 
 ## Done and verified
 
+- **Runs on a real screen**: the Guition 4-inch square (480 x 480), where it works nicely (reported by the
+  maintainer, 2026-10-19). Listed in the README under "Tried on".
+- Merged into the plugin index as a Community plugin (tessera-plugins PR #7, 2026-10-16): every release reaches the
+  app by itself.
 - `tools/check.py` passes (`tessera-Microplant: ok`, API 0.10 checked, `store.png` present).
 - **The official bench passes**: `tools/preview.py --strict` builds the plugin with ESPHome for all four screens (cyd,
   guition, waveshare43-portrait, jc8012p4a1), renders 193 pictures and ends with 0 warnings. What is left are notes
-  only: sizes a grid cannot hold, and the `thirsty` bar item showing nothing with the bench's data.
+  only: sizes a grid cannot hold. Since 0.7.1 the bench's Monstera is a little thirsty, so the `thirsty` bar item shows.
 - `store.png` made by `tools/store_image.py` from that run.
 - C++ also compiles warning-free in `dev/host-harness` (cloud session) against Tessera **dev**'s headers, LVGL 9.5.0
   and ArduinoJson 7.4.2; `model_test.cpp` passes there. Its `deps/` are not on the Windows PC, so it cannot run there
@@ -32,9 +36,9 @@
 
 ## Not verified yet
 
-- Never on a real screen. Untested: real tap coordinates, animation smoothness on an RGB panel, memory/flash on the
-  CYD, the HA websocket answers' real shape (`history_during_period` compressed rows, statistics ms timestamps), °F
-  sensors, the Italian texts on glass.
+- Tried on glass only on the Guition. Not checked one by one yet: memory/flash on the CYD, the other boards, the HA
+  websocket answers' real shape (`history_during_period` compressed rows, statistics ms timestamps), °F sensors, the
+  Italian texts on glass.
 - **Report upstream**: the firmware drops a plugin tile's entity of a domain it has no tile for (`plant`), see
   DESIGN.md "Plant Monitor". MicroPlant guesses the id from the plant's name meanwhile; a renamed entity id breaks it.
 - **Suggest upstream, after measuring** (`rendered_frames` on a Guition): for the ESP32-S3 RGB boards only,
@@ -48,9 +52,8 @@
 
 ## Next steps
 
-1. Put a screen on Tessera's dev channel, add the repo with **Add with a link**, place the Plant tile, test taps,
-   watering with an `input_datetime`, offline behaviour and the card history.
-2. Push to GitHub (`alexscemo/tessera-Microplant` or similar); a release once it works.
+1. Try it on another board (a CYD first, for memory) and add it to the README's "Tried on" line.
+2. Release 0.7.1 for the calmer store picture.
 
 ## Ideas not done
 

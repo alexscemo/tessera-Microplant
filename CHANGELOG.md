@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.1 - 2026-10-19
+- A calmer store picture: the demo battery is full, so the red battery mark no longer shows on every tile, and the
+  Monstera is a little thirsty, so the top bar's loupe shows "Water Monstera" instead of a lone clock.
+- The README says which screens it was tried on: the Guition 4-inch square, where it works nicely.
+
 ## 0.7.0 - 2026-10-17
 - The plant looks like its kind: a monstera with big split leaves, a snake plant with upright blades, a cactus with
   its arms (and a flower when it does well), a spider plant's arching leaves, a pothos with vines over the rim, a
