@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.7.2 - 2026-10-30
+- Builds on Tessera 0.4.91 and later (plugin API 0.24), which took away the key and value form of `tessera::action`:
+  watering a plant tells an `input_datetime` helper the moment as a number in a JSON object. The manifest names plugin
+  API 0.12, which brought those fields.
+
 ## 0.7.1 - 2026-10-19
 - A calmer store picture: the demo battery is full, so the red battery mark no longer shows on every tile, and the
   Monstera is a little thirsty, so the top bar's loupe shows "Water Monstera" instead of a lone clock.
