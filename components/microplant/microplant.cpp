@@ -805,11 +805,11 @@ void PlantTile::water(uint32_t now) {
     watered_here_ = now;
     if (*watered_entity_) {
       // Tell Home Assistant: a helper keeps the moment for every screen and survives a restart.
-      char stamp[16];
-      snprintf(stamp, sizeof(stamp), "%lu", static_cast<unsigned long>(now));
-      if (starts_with(watered_entity_, "input_datetime."))
-        tessera::action("input_datetime.set_datetime", watered_entity_, "timestamp", stamp);
-      else if (starts_with(watered_entity_, "input_button."))
+      if (starts_with(watered_entity_, "input_datetime.")) {
+        JsonDocument fields;
+        fields["timestamp"] = static_cast<unsigned long>(now);  // a number, as input_datetime expects
+        tessera::action("input_datetime.set_datetime", watered_entity_, fields);
+      } else if (starts_with(watered_entity_, "input_button."))
         tessera::action("input_button.press", watered_entity_);
       else if (starts_with(watered_entity_, "button."))
         tessera::action("button.press", watered_entity_);
